@@ -1,0 +1,5 @@
+*.log
+*.pdf
+chroma_db/
+*.env
+logs/

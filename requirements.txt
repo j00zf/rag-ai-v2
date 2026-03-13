@@ -1,0 +1,10 @@
+flask
+python-dotenv
+langchain
+langchain-community
+chromadb
+sentence-transformers
+pypdf
+groq
+mysql-connector-python
+bcrypt

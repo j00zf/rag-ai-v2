@@ -1,0 +1,21 @@
+<h2>Chat Logs</h2>
+
+<table border="1">
+
+<tr>
+<th>User</th>
+<th>Bot</th>
+<th>Time</th>
+</tr>
+
+{% for chat in chats %}
+
+<tr>
+<td>{{ chat[2] }}</td>
+<td>{{ chat[3] }}</td>
+<td>{{ chat[4] }}</td>
+</tr>
+
+{% endfor %}
+
+</table>
