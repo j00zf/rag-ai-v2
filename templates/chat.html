@@ -1,8 +1,151 @@
-<h2>College AI Chatbot</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>College AI Chatbot</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      background: #f0f2f5;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: #1e40af;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.4rem;
+    }
+    #chatbox {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .message {
+      max-width: 80%;
+      padding: 0.9rem 1.3rem;
+      border-radius: 1.2rem;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+    .user {
+      align-self: flex-end;
+      background: #2563eb;
+      color: white;
+      border-bottom-right-radius: 0.3rem;
+    }
+    .bot {
+      align-self: flex-start;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-bottom-left-radius: 0.3rem;
+    }
+    #input-area {
+      padding: 1rem;
+      background: white;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      gap: 0.8rem;
+    }
+    #message {
+      flex: 1;
+      padding: 0.9rem 1.2rem;
+      border: 1px solid #d1d5db;
+      border-radius: 9999px;
+      font-size: 1rem;
+      outline: none;
+    }
+    #message:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+    button {
+      padding: 0.9rem 1.6rem;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 9999px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+
+<header>College AI Chatbot</header>
 
 <div id="chatbox"></div>
 
-<input id="message">
-<button onclick="sendMessage()">Send</button>
+<div id="input-area">
+  <input id="message" type="text" placeholder="Ask anything about the college..." autofocus />
+  <button onclick="sendMessage()">Send</button>
+</div>
 
-<script src="/static/chat.js"></script>
+<script>
+  const chatbox = document.getElementById("chatbox");
+  const input = document.getElementById("message");
+
+  // Scroll to bottom
+  function scrollToBottom() {
+    chatbox.scrollTop = chatbox.scrollHeight;
+  }
+
+  // Add message to UI
+  function addMessage(text, isUser = false) {
+    const msg = document.createElement("div");
+    msg.className = `message ${isUser ? "user" : "bot"}`;
+    msg.textContent = text;
+    chatbox.appendChild(msg);
+    scrollToBottom();
+  }
+
+  // Send message to backend
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
+
+    addMessage(text, true);
+    input.value = "";
+
+    try {
+      const res = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        addMessage(data.reply);
+      } else {
+        addMessage("Error: " + (data.reply || "Something went wrong"), false);
+      }
+    } catch (err) {
+      addMessage("Network error. Please try again.", false);
+      console.error(err);
+    }
+  }
+
+  // Send on Enter key
+  input.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+</script>
+
+</body>
+</html>

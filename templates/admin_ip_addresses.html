@@ -10,7 +10,13 @@
     {% for ip in ips %}
     <tr>
         <td>{{ ip.ip_address }}</td>
-        <td>{{ ip.city }}, {{ ip.country }}</td>
+        <td>
+            {% if ip.city and ip.country %}
+                {{ ip.city }}, {{ ip.country }}
+            {% else %}
+                Unknown / Private IP
+            {% endif %}
+        </td>
         <td>{{ ip.message_count or 0 }}</td>
         <td>{{ ip.last_seen or 'Never' }}</td>
     </tr>

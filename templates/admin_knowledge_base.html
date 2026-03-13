@@ -1,21 +1,63 @@
-{% extends "admin_dashboard.html" %}  <!-- optional: reuse layout -->
 
-{% block content %}
-<h2>Knowledge Base Documents</h2>
+<h2>Manage Knowledge Base</h2>
 
-{% if error %}<p style="color:red;">{{ error }}</p>{% endif %}
+{% if error %}
+    <p style="color:#c53030; font-weight:bold;">{{ error }}</p>
+{% endif %}
+{% if success %}
+    <p style="color:#2f855a; font-weight:bold;">{{ success }}</p>
+{% endif %}
 
-<table>
-    <tr><th>ID</th><th>Filename</th><th>Uploaded</th><th>Actions</th></tr>
-    {% for doc in documents %}
-    <tr>
-        <td>{{ doc.id }}</td>
-        <td>{{ doc.filename }}</td>
-        <td>{{ doc.uploaded_at }}</td>
-        <td><!-- add delete button later --></td>
-    </tr>
-    {% endfor %}
+<!-- Upload form -->
+<div style="margin: 24px 0; padding: 20px; background:#f9fafb; border:1px solid #e2e8f0; border-radius:8px;">
+    <h3>Upload New PDF</h3>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="pdf" accept=".pdf" required style="margin:12px 0;" />
+        <button type="submit" style="padding:10px 20px; background:#3182ce; color:white; border:none; border-radius:6px; cursor:pointer;">
+            Upload & Process PDF
+        </button>
+    </form>
+</div>
+
+<h3>Existing Documents</h3>
+
+{% if documents %}
+<table style="width:100%; border-collapse:collapse; margin-top:16px;">
+    <thead>
+        <tr style="background:#edf2f7;">
+            <th style="padding:12px; text-align:left;">ID</th>
+            <th style="padding:12px; text-align:left;">Filename</th>
+            <th style="padding:12px; text-align:center;">Chunks</th>
+            <th style="padding:12px; text-align:left;">Uploaded</th>
+            <th style="padding:12px; text-align:center;">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for doc in documents %}
+        <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:12px;">{{ doc.id }}</td>
+            <td style="padding:12px;">{{ doc.filename }}</td>
+            <td style="padding:12px; text-align:center;">{{ doc.chunk_count or 0 }}</td>
+            <td style="padding:12px;">{{ doc.uploaded_at }}</td>
+            <td style="padding:12px; text-align:center;">
+                <a href="/admin/knowledge-base/document/{{ doc.id }}/chunks"
+                   style="color:#2b6cb0; text-decoration:none; margin-right:12px;">View Chunks</a>
+                <form action="/admin/knowledge-base/delete/{{ doc.id }}" method="POST" style="display:inline;"
+                      onsubmit="return confirm('Delete {{ doc.filename }} and all its chunks? This cannot be undone.');">
+                    <button type="submit" style="color:#e53e3e; background:none; border:none; cursor:pointer; font-weight:bold;">
+                        Delete
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
 </table>
+{% else %}
+    <p><em>No documents uploaded yet.</em></p>
+{% endif %}
 
-<p><a href="/admin/dashboard">← Back to Dashboard</a></p>
-{% endblock %}
+<p style="margin-top:32px;">
+    <a href="/admin/dashboard" style="color:#4a5568;">← Back to Dashboard</a>
+</p>
+
