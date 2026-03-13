@@ -1,0 +1,21 @@
+{% extends "admin_dashboard.html" %}  <!-- optional: reuse layout -->
+
+{% block content %}
+<h2>Knowledge Base Documents</h2>
+
+{% if error %}<p style="color:red;">{{ error }}</p>{% endif %}
+
+<table>
+    <tr><th>ID</th><th>Filename</th><th>Uploaded</th><th>Actions</th></tr>
+    {% for doc in documents %}
+    <tr>
+        <td>{{ doc.id }}</td>
+        <td>{{ doc.filename }}</td>
+        <td>{{ doc.uploaded_at }}</td>
+        <td><!-- add delete button later --></td>
+    </tr>
+    {% endfor %}
+</table>
+
+<p><a href="/admin/dashboard">← Back to Dashboard</a></p>
+{% endblock %}

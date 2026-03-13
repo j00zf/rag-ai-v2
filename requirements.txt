@@ -8,3 +8,4 @@ pypdf
 groq
 mysql-connector-python
 bcrypt
+werkzeug

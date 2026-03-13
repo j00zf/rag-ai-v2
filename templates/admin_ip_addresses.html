@@ -1,0 +1,18 @@
+<h2>All IP Addresses & Activity</h2>
+
+<table>
+    <tr>
+        <th>IP</th>
+        <th>Location</th>
+        <th>Messages</th>
+        <th>Last Seen</th>
+    </tr>
+    {% for ip in ips %}
+    <tr>
+        <td>{{ ip.ip_address }}</td>
+        <td>{{ ip.city }}, {{ ip.country }}</td>
+        <td>{{ ip.message_count or 0 }}</td>
+        <td>{{ ip.last_seen or 'Never' }}</td>
+    </tr>
+    {% endfor %}
+</table>

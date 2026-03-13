@@ -1,0 +1,23 @@
+<h2>Manage Admins</h2>
+
+<table>
+    <tr><th>Username</th><th>Status</th><th>Role</th><th>Created</th><th>Last Login</th><th>Actions</th></tr>
+    {% for admin in admins %}
+    <tr>
+        <td>{{ admin.username }}</td>
+        <td>{{ admin.status }}</td>
+        <td>{{ admin.role }}</td>
+        <td>{{ admin.created_at }}</td>
+        <td>{{ admin.last_login or '-' }}</td>
+        <td>
+            <form action="/admin/toggle-admin-status" method="POST" style="display:inline;">
+                <input type="hidden" name="admin_id" value="{{ admin.id }}">
+                <input type="hidden" name="status" value="{% if admin.status == 'active' %}inactive{% else %}active{% endif %}">
+                <button type="submit" onclick="return confirm('Are you sure?');">
+                    {% if admin.status == 'active' %}Deactivate{% else %}Activate{% endif %}
+                </button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>

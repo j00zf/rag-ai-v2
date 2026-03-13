@@ -1,0 +1,6 @@
+<h2>Recent Error Logs</h2>
+
+{% for name, content in logs.items() %}
+    <h3>{{ name }}</h3>
+    <pre style="background:#f8f8f8; padding:12px; border:1px solid #ddd; max-height:300px; overflow:auto;">{{ content }}</pre>
+{% endfor %}
