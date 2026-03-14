@@ -594,28 +594,28 @@ def view_chats():
 # ────────────────────────────────────────────────
 @app.errorhandler(404)
 def not_found(e):
-    return render_template("404.html"), 404
+    return render_template("errors/404.html"), 404
 
 @app.errorhandler(500)
 def server_error(e):
     app_logger.error(f"500 error: {str(e)}")
-    return render_template("500.html"), 500
+    return render_template("errors/500.html"), 500
 
 @app.errorhandler(403)
 def forbidden(e):
-    return render_template("403.html"), 403
+    return render_template("errors/403.html"), 403
 
 @app.errorhandler(400)
 def bad_request(e):
-    return render_template("400.html"), 400
+    return render_template("errors/400.html"), 400
 
 @app.errorhandler(401)
 def unauthorized(e):
-    return render_template("401.html"), 401
+    return render_template("errors/401.html"), 401
 
 @app.errorhandler(405)
 def method_not_allowed(e):
-    return render_template("405.html"), 405
+    return render_template("errors/405.html"), 405
 
 # ────────────────────────────────────────────────
 # Start the server
