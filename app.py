@@ -84,44 +84,112 @@ except Exception as e:
     groq_client = None
 
 # ────────────────────────────────────────────────
-# Vector DB (Chroma) – singleton style + debug
+# Vector DB – lazy initialization (called on first use)
 # ────────────────────────────────────────────────
-vector_db = None
-retriever = None
+def get_vector_db():
+    if not hasattr(get_vector_db, "vector_db") or not hasattr(get_vector_db, "retriever"):
+        try:
+            app_logger.info("[VECTOR] First use – loading embeddings...")
+            embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+            app_logger.info("[VECTOR] Embeddings loaded")
 
-def initialize_vector_db():
-    global vector_db, retriever
-    if vector_db is not None:
-        app_logger.info("[VECTOR] Already initialized – skipping")
+            app_logger.info("[VECTOR] First use – initializing Chroma...")
+            vector_db = Chroma(
+                persist_directory="chroma_db",
+                embedding_function=embeddings,
+                collection_name="rag_documents"
+            )
+            count = vector_db._collection.count()
+            app_logger.info(f"[VECTOR] Chroma ready. Collection count: {count}")
+
+            retriever = vector_db.as_retriever(search_kwargs={"k": 3})
+            app_logger.info("[VECTOR] Retriever ready")
+
+            # Cache it at function level
+            get_vector_db.vector_db = vector_db
+            get_vector_db.retriever = retriever
+
+            return vector_db, retriever
+
+        except Exception as e:
+            import traceback
+            error_msg = f"[VECTOR] Failed on first use: {str(e)}\n{traceback.format_exc()}"
+            rag_logger.error(error_msg)
+            app_logger.error(error_msg)
+            return None, None
+
+    return get_vector_db.vector_db, get_vector_db.retriever
+
+# ────────────────────────────────────────────────
+# PDF processing
+# ────────────────────────────────────────────────
+def process_pdf(path, document_id):
+    vector_db, _ = get_vector_db()
+    if not vector_db:
+        rag_logger.error("Vector DB not initialized – cannot process PDF")
         return
 
     try:
-        app_logger.info("[VECTOR] Loading sentence-transformers embeddings...")
-        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-        app_logger.info("[VECTOR] Embeddings loaded successfully")
+        app_logger.info(f"[PDF] Processing file: {path}")
+        loader = PyPDFLoader(path)
+        documents = loader.load()
 
-        app_logger.info("[VECTOR] Initializing Chroma vector store...")
-        vector_db = Chroma(
-            persist_directory="chroma_db",
-            embedding_function=embeddings,
-            collection_name="rag_documents"
-        )
-        count = vector_db._collection.count()
-        app_logger.info(f"[VECTOR] Chroma initialized OK. Collection count: {count}")
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        docs = splitter.split_documents(documents)
 
-        retriever = vector_db.as_retriever(search_kwargs={"k": 3})
-        app_logger.info("[VECTOR] Retriever created successfully")
+        db = get_db_connection()
+        if db:
+            cursor = db.cursor()
+            for idx, doc in enumerate(docs):
+                cursor.execute(
+                    "INSERT INTO document_chunks (document_id, content, chunk_index) VALUES (%s, %s, %s)",
+                    (document_id, doc.page_content, idx)
+                )
+            db.commit()
+            app_logger.info(f"[PDF] Saved {len(docs)} chunks to MySQL")
+
+        metadata_list = [{"document_id": str(document_id), "chunk_index": i} for i in range(len(docs))]
+        vector_db.add_documents(docs, metadatas=metadata_list)
+        vector_db.persist()
+        app_logger.info(f"[PDF] Added {len(docs)} documents to Chroma")
 
     except Exception as e:
-        import traceback
-        error_msg = f"[VECTOR] Initialization failed: {str(e)}\n{traceback.format_exc()}"
-        rag_logger.error(error_msg)
-        app_logger.error(error_msg)
-        vector_db = None
-        retriever = None
+        rag_logger.error(f"[PDF] Processing failed: {str(e)}")
+        app_logger.error(f"[PDF] Processing failed: {str(e)}")
 
-# Call it once at startup
-initialize_vector_db()
+# ────────────────────────────────────────────────
+# RAG – ask bot
+# ────────────────────────────────────────────────
+def ask_bot(question):
+    _, retriever = get_vector_db()
+    if not retriever or not groq_client:
+        return "AI system is currently unavailable."
+
+    try:
+        docs = retriever.get_relevant_documents(question)
+        context = "\n".join([doc.page_content for doc in docs])
+
+        prompt = f"""
+You are a helpful AI assistant for a college website.
+Answer ONLY using the provided context. Be concise, accurate and polite.
+
+Context:
+{context}
+
+Question: {question}
+"""
+
+        completion = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=1024
+        )
+        return completion.choices[0].message.content.strip()
+
+    except Exception as e:
+        rag_logger.error(f"RAG error | Question: {question} | Error: {str(e)}")
+        return "Sorry, the AI assistant is temporarily unavailable."
 
 # ────────────────────────────────────────────────
 # IP Helpers
@@ -184,76 +252,6 @@ def get_ip_location(ip):
 
     app_logger.error(f"ipgeolocation failed after {max_retries} attempts")
     return None
-
-# ────────────────────────────────────────────────
-# PDF processing
-# ────────────────────────────────────────────────
-def process_pdf(path, document_id):
-    if not vector_db:
-        rag_logger.error("Vector DB not initialized – cannot process PDF")
-        return
-
-    try:
-        app_logger.info(f"[PDF] Processing file: {path}")
-        loader = PyPDFLoader(path)
-        documents = loader.load()
-
-        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-        docs = splitter.split_documents(documents)
-
-        db = get_db_connection()
-        if db:
-            cursor = db.cursor()
-            for idx, doc in enumerate(docs):
-                cursor.execute(
-                    "INSERT INTO document_chunks (document_id, content, chunk_index) VALUES (%s, %s, %s)",
-                    (document_id, doc.page_content, idx)
-                )
-            db.commit()
-            app_logger.info(f"[PDF] Saved {len(docs)} chunks to MySQL")
-
-        metadata_list = [{"document_id": str(document_id), "chunk_index": i} for i in range(len(docs))]
-        vector_db.add_documents(docs, metadatas=metadata_list)
-        vector_db.persist()
-        app_logger.info(f"[PDF] Added {len(docs)} documents to Chroma")
-
-    except Exception as e:
-        error_msg = f"[PDF] Processing failed for {path}: {str(e)}"
-        rag_logger.error(error_msg)
-        app_logger.error(error_msg)
-
-# ────────────────────────────────────────────────
-# RAG – ask bot
-# ────────────────────────────────────────────────
-def ask_bot(question):
-    if not retriever or not groq_client:
-        return "AI system is currently unavailable."
-
-    try:
-        docs = retriever.get_relevant_documents(question)
-        context = "\n".join([doc.page_content for doc in docs])
-
-        prompt = f"""
-You are a helpful AI assistant for a college website.
-Answer ONLY using the provided context. Be concise, accurate and polite.
-
-Context:
-{context}
-
-Question: {question}
-"""
-
-        completion = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            max_tokens=1024
-        )
-        return completion.choices[0].message.content.strip()
-
-    except Exception as e:
-        rag_logger.error(f"RAG error | Question: {question} | Error: {str(e)}")
-        return "Sorry, the AI assistant is temporarily unavailable."
 
 # ────────────────────────────────────────────────
 # Public routes
@@ -319,7 +317,7 @@ def chat():
         return jsonify({"reply": "Server error occurred."}), 500
 
 # ────────────────────────────────────────────────
-# Admin decorator & routes
+# Admin decorator & routes (all included)
 # ────────────────────────────────────────────────
 def admin_required(f):
     def wrapper(*args, **kwargs):
@@ -443,9 +441,6 @@ def admin_dashboard():
     return render_template("admin_dashboard.html",
                          stats=stats, recent_chats=recent_chats, top_ips=top_ips)
 
-# ────────────────────────────────────────────────
-# Knowledge Base Management
-# ────────────────────────────────────────────────
 @app.route("/admin/knowledge-base", methods=["GET", "POST"])
 @admin_required
 def admin_knowledge_base():
@@ -518,6 +513,7 @@ def delete_document(doc_id):
 
         file_path = os.path.join("pdfs", doc['filename'])
 
+        vector_db, _ = get_vector_db()
         if vector_db:
             try:
                 results = vector_db.get(where={"document_id": str(doc_id)})
@@ -539,9 +535,6 @@ def delete_document(doc_id):
         app_logger.error(f"Delete doc {doc_id} error: {str(e)}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-# ────────────────────────────────────────────────
-# Other admin routes
-# ────────────────────────────────────────────────
 @app.route("/admin/ip-addresses")
 @admin_required
 def admin_ip_addresses():
