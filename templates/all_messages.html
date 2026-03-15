@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>All IP Addresses & Activity - Admin</title>
+  <title>All Messages - Admin</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -39,12 +39,18 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow-sm);
-      transition: box-shadow 0.22s ease, transform 0.22s ease;
+      transition: all 0.22s ease;
+      cursor: pointer;
     }
 
     .card:hover {
       box-shadow: var(--shadow-md);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+    }
+
+    .card.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.15);
     }
 
     .sidebar {
@@ -82,41 +88,41 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
 
-    table th {
-      background: #f8fafc;
+    .message-bubble {
+      padding: 0.9rem 1.1rem;
+      border-radius: 0.75rem;
+      margin-bottom: 0.9rem;
+      max-width: 85%;
+      line-height: 1.45;
+    }
+
+    .user-bubble {
+      background: #dbeafe;
+      align-self: flex-start;
+      border-bottom-left-radius: 0.25rem;
+    }
+
+    .bot-bubble {
+      background: #ecfdf5;
+      align-self: flex-end;
+      border-bottom-right-radius: 0.25rem;
+    }
+
+    .timestamp {
+      font-size: 0.78rem;
       color: var(--text-mute);
-      font-weight: 600;
-      text-transform: uppercase;
-      font-size: 0.6875rem;
-      letter-spacing: 0.04em;
-      padding: 0.875rem 1.25rem;
-      text-align: left;
+      margin-top: 0.3rem;
     }
 
-    table td {
-      color: #334155;
-      padding: 0.875rem 1.25rem;
-      border-bottom: 1px solid var(--border);
-    }
-
-    table tr:hover {
-      background: #f8fafc;
-    }
-
-    .back-link {
+    .back-link, .clear-selection {
       color: var(--text-mute);
       text-decoration: none;
       font-weight: 500;
     }
 
-    .back-link:hover {
+    .back-link:hover, .clear-selection:hover {
       color: var(--text-base);
       text-decoration: underline;
-    }
-
-    .icon-muted {
-      color: #94a3b8;
-      opacity: 0.9;
     }
   </style>
 </head>
@@ -125,8 +131,8 @@
 
 <div class="flex min-h-screen">
 
-  <!-- Sidebar (same as other admin pages) -->
-  <aside class="w-64 sidebar flex flex-col sticky top-0 h-screen z-20">
+  <!-- Sidebar -->
+ <aside class="w-64 sidebar flex flex-col sticky top-0 h-screen z-20">
 
     <div class="p-5 text-xl font-semibold flex items-center gap-3 border-b border-[var(--border)] bg-white/70 backdrop-blur-sm">
       <i data-lucide="layout-dashboard" class="w-6 h-6 text-[var(--accent)]"></i>
@@ -147,7 +153,7 @@
       </a>
 
       <a href="/admin/ip-addresses"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition sidebar-active">
+         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
         <i data-lucide="globe" class="w-5 h-5"></i>
         IP Addresses
       </a>
@@ -167,7 +173,7 @@
       </a>
 
       <a href="/admin"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition sidebar-active">
         <i data-lucide="messages-square" class="w-5 h-5"></i>
         Messages
       </a>
@@ -189,76 +195,97 @@
 
   </aside>
 
-
   <!-- Main Content -->
   <div class="flex-1 flex flex-col">
 
     <header class="bg-white border-b border-[var(--border)] px-6 py-4 sticky top-0 z-10 backdrop-blur-sm">
       <h1 class="text-xl font-semibold flex items-center gap-3 text-gray-800">
-        <i data-lucide="globe" class="w-6 h-6 text-[var(--accent)]"></i>
-        All IP Addresses & Activity
+        <i data-lucide="messages-square" class="w-6 h-6 text-[var(--accent)]"></i>
+        All Chat Messages
       </h1>
     </header>
 
-
     <main class="p-6 flex-1 max-w-7xl mx-auto">
 
-      <div class="mb-6">
-        <a href="/admin/knowledge-base" class="back-link">
-          ← Back to Knowledge Base
-        </a>
+      <div class="mb-6 flex items-center justify-between">
+        <a href="/admin/dashboard" class="back-link">← Back to Dashboard</a>
+        {% if selected_ip_id %}
+          <a href="/admin/" class="clear-selection text-sm">× Clear selection</a>
+        {% endif %}
       </div>
 
-      <div class="card overflow-hidden">
+      <div class="grid lg:grid-cols-2 gap-6">
 
-        <div class="px-6 py-4 border-b border-[var(--border)]">
-          <h2 class="text-xl font-semibold m-0">IP Activity Overview</h2>
-          <p class="text-[var(--text-mute)] mt-1 text-sm">
-            Showing all recorded IP addresses and their chat activity
-          </p>
+        <!-- Left column: Unique Users / IPs -->
+        <div class="space-y-4">
+          <h2 class="text-lg font-semibold mb-3">Users / IPs ({{ unique_users|length }})</h2>
+
+          {% if unique_users %}
+            {% for user in unique_users %}
+            <a href="?ip_id={{ user.ip_id }}"
+               class="card p-5 block {% if selected_ip_id == user.ip_id %}active{% endif %}">
+              <div class="flex justify-between items-start">
+                <div>
+                  <div class="font-medium text-base">{{ user.ip_address }}</div>
+                  <div class="text-sm text-[var(--text-mute)] mt-0.5">
+                    {{ user.city|default("") }}{% if user.city and user.country %}, {% endif %}{{ user.country|default("—") }}
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-sm font-medium">{{ user.message_count }} msg{% if user.message_count != 1 %}s{% endif %}</div>
+                  <div class="text-xs text-[var(--text-mute)] mt-0.5">{{ user.last_message_at }}</div>
+                </div>
+              </div>
+            </a>
+            {% endfor %}
+          {% else %}
+            <div class="card p-8 text-center text-[var(--text-mute)]">
+              No users with messages found.
+            </div>
+          {% endif %}
         </div>
 
-        {% if ips %}
-        <div class="overflow-x-auto">
-          <table class="min-w-full">
-            <thead>
-              <tr>
-                <th>IP Address</th>
-                <th>Location</th>
-                <th>Messages</th>
-                <th>Last Seen</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for ip in ips %}
-              <tr class="hover:bg-gray-50/70 transition-colors">
-                <td class="font-medium font-mono text-sm">{{ ip.ip_address }}</td>
-                <td>
-                  {% if ip.city and ip.country %}
-                    {{ ip.city }}, {{ ip.country }}
-                  {% else %}
-                    <span class="text-[var(--text-mute)] italic">Unknown / Private IP</span>
-                  {% endif %}
-                </td>
-                <td class="font-semibold text-center">{{ ip.message_count|default(0) }}</td>
-                <td class="text-[var(--text-mute)]">
-                  {{ ip.last_seen|default("Never") }}
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        <!-- Right column: Selected user's conversation -->
+        <div>
+          {% if selected_ip_info %}
+            <div class="card p-6 sticky top-6">
+              <h3 class="font-semibold text-lg mb-4">
+                Conversation with {{ selected_ip_info.ip_address }}
+              </h3>
+              <div class="text-sm text-[var(--text-mute)] mb-5">
+                {{ selected_ip_info.city|default("") }}{% if selected_ip_info.city and selected_ip_info.country %}, {% endif %}{{ selected_ip_info.country|default("—") }}
+              </div>
+
+              <div class="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                {% for msg in selected_messages %}
+                  <div class="flex flex-col {% if msg.user_message %}items-start{% else %}items-end{% endif %}">
+                    {% if msg.user_message %}
+                      <div class="message-bubble user-bubble">
+                        {{ msg.user_message }}
+                      </div>
+                      <div class="timestamp">{{ msg.created_at }}</div>
+                    {% endif %}
+
+                    {% if msg.bot_response %}
+                      <div class="message-bubble bot-bubble">
+                        {{ msg.bot_response }}
+                      </div>
+                      <div class="timestamp">{{ msg.created_at }}</div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% elif unique_users %}
+            <div class="card p-10 text-center text-[var(--text-mute)] h-64 flex items-center justify-center">
+              <p>Select a user/IP from the left to view their conversation history.</p>
+            </div>
+          {% endif %}
         </div>
-        {% else %}
-        <div class="p-12 text-center text-[var(--text-mute)]">
-          <p class="text-lg">No IP addresses recorded yet.</p>
-        </div>
-        {% endif %}
 
       </div>
 
     </main>
-
   </div>
 
 </div>

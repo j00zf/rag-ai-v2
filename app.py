@@ -3,6 +3,7 @@ import uuid
 import logging
 import requests
 import time
+import traceback
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, render_template, request, jsonify, redirect, session
 from dotenv import load_dotenv
@@ -81,63 +82,64 @@ except Exception as e:
     groq_client = None
 
 # ────────────────────────────────────────────────
-# Lazy Vector DB initialization – called on first use
+# Lazy Vector DB initialization
 # ────────────────────────────────────────────────
 def get_vector_db():
-    if not hasattr(get_vector_db, "vector_db") or not hasattr(get_vector_db, "retriever"):
-        try:
-            app_logger.info("[VECTOR] First use – loading embeddings...")
-            embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-            app_logger.info("[VECTOR] Embeddings loaded")
+    if hasattr(get_vector_db, "initialized") and get_vector_db.initialized:
+        return get_vector_db.vector_db, get_vector_db.retriever
 
-            app_logger.info("[VECTOR] First use – initializing Chroma...")
-            vector_db = Chroma(
-                persist_directory="chroma_db",
-                embedding_function=embeddings,
-                collection_name="rag_documents"
-            )
-            count = vector_db._collection.count()
-            app_logger.info(f"[VECTOR] Chroma ready. Collection count: {count}")
+    try:
+        app_logger.info("[VECTOR] Loading embeddings model...")
+        embeddings = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2",
+            model_kwargs={"device": "cpu"}
+        )
 
-            retriever = vector_db.as_retriever(search_kwargs={"k": 3})
-            app_logger.info("[VECTOR] Retriever ready")
+        app_logger.info("[VECTOR] Connecting to Chroma...")
+        vector_db = Chroma(
+            persist_directory="chroma_db",
+            embedding_function=embeddings,
+            collection_name="rag_documents"
+        )
 
-            # Cache on the function object
-            get_vector_db.vector_db = vector_db
-            get_vector_db.retriever = retriever
+        count = vector_db._collection.count()
+        app_logger.info(f"[VECTOR] Chroma ready — {count} documents in collection")
 
-            return vector_db, retriever
+        retriever = vector_db.as_retriever(
+            search_type="similarity_score_threshold",
+            search_kwargs={"k": 6, "score_threshold": 0.26}
+        )
 
-        except Exception as e:
-            import traceback
-            error_msg = f"[VECTOR] Failed on first use: {str(e)}\n{traceback.format_exc()}"
-            rag_logger.error(error_msg)
-            app_logger.error(error_msg)
-            return None, None
+        get_vector_db.vector_db = vector_db
+        get_vector_db.retriever = retriever
+        get_vector_db.initialized = True
 
-    return get_vector_db.vector_db, get_vector_db.retriever
+        return vector_db, retriever
+
+    except Exception as e:
+        msg = f"[VECTOR INIT FAILED] {str(e)}\n{traceback.format_exc()}"
+        rag_logger.critical(msg)
+        app_logger.critical(msg)
+        return None, None
 
 # ────────────────────────────────────────────────
-# PDF processing
+# PDF processing – FIXED VERSION
 # ────────────────────────────────────────────────
 def process_pdf(path, document_id):
-    app_logger.info("[PDF-DEBUG] Entering process_pdf")
-    vector_db, retriever = get_vector_db()  # note: both returned
-    app_logger.info(f"[PDF-DEBUG] get_vector_db returned vector_db type: {type(vector_db)}")
+    app_logger.info(f"[PDF] Processing file: {path}")
+    vector_db, _ = get_vector_db()
     
-    if vector_db is None:  # ← changed from "not vector_db" to "is None"
+    if vector_db is None:
         rag_logger.error("Vector DB not initialized – cannot process PDF")
-        app_logger.info("[PDF-DEBUG] vector_db is None → skipping")
         return
 
-    app_logger.info("[PDF-DEBUG] vector_db is not None → proceeding")
     try:
-        app_logger.info(f"[PDF] Processing file: {path}")
         loader = PyPDFLoader(path)
         documents = loader.load()
         splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         docs = splitter.split_documents(documents)
 
+        # Save to MySQL
         db = get_db_connection()
         if db:
             cursor = db.cursor()
@@ -149,48 +151,72 @@ def process_pdf(path, document_id):
             db.commit()
             app_logger.info(f"[PDF] Saved {len(docs)} chunks to MySQL")
 
-        metadata_list = [{"document_id": str(document_id), "chunk_index": i} for i in range(len(docs))]
-        vector_db.add_documents(docs, metadatas=metadata_list)
+        # Prepare metadata
+        metadata_list = [
+            {
+                "document_id": str(document_id),
+                "chunk_index": i,
+                "source": os.path.basename(path)
+            }
+            for i in range(len(docs))
+        ]
+
+        # Attach metadata to documents (correct way)
+        for doc, meta in zip(docs, metadata_list):
+            doc.metadata.update(meta)
+
+        # Add to Chroma – correct call
+        vector_db.add_documents(docs)
         vector_db.persist()
-        app_logger.info(f"[PDF] Added {len(docs)} documents to Chroma")
+
+        new_count = vector_db._collection.count()
+        app_logger.info(f"[PDF] Successfully added {len(docs)} chunks → total documents now: {new_count}")
 
     except Exception as e:
-        rag_logger.error(f"[PDF] Processing failed: {str(e)}")
-        app_logger.error(f"[PDF] Processing failed: {str(e)}")
-        
+        rag_logger.error(f"[PDF] Processing failed: {str(e)}", exc_info=True)
+        app_logger.error(f"[PDF] Processing failed: {str(e)}", exc_info=True)
+
 # ────────────────────────────────────────────────
-# RAG – ask bot
+# RAG – stricter prompt
 # ────────────────────────────────────────────────
 def ask_bot(question):
     _, retriever = get_vector_db()
     if not retriever or not groq_client:
-        return "AI system is currently unavailable."
+        return "The AI system is temporarily unavailable."
 
     try:
-        docs = retriever.get_relevant_documents(question)
-        context = "\n".join([doc.page_content for doc in docs])
+        docs = retriever.invoke(question)
+        if not docs:
+            return "I don't have information about that in the college documents."
 
-        prompt = f"""
-You are a helpful AI assistant for a college website.
-Answer ONLY using the provided context. Be concise, accurate and polite.
+        context = "\n\n".join([f"[Excerpt]:\n{doc.page_content}" for doc in docs])
 
-Context:
+        prompt = f"""You are a helpful college information assistant.
+Answer **only** using the provided excerpts from official college documents.
+Do NOT use your general knowledge. Do NOT make up information.
+If nothing relevant is found, reply exactly:
+"I don't have information about that in the available college documents."
+
+Excerpts:
 {context}
 
 Question: {question}
-"""
+
+Answer concisely, politely, and accurately.
+Use bullet points or numbered lists when helpful."""
 
         completion = groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            max_tokens=1024
+            temperature=0.15,
+            max_tokens=1200,
+            top_p=0.92
         )
         return completion.choices[0].message.content.strip()
 
     except Exception as e:
-        rag_logger.error(f"RAG error | Question: {question} | Error: {str(e)}")
-        return "Sorry, the AI assistant is temporarily unavailable."
+        rag_logger.error(f"RAG failed | q: {question[:80]}... | err: {str(e)}")
+        return "Sorry, I'm having trouble accessing the knowledge base."
 
 # ────────────────────────────────────────────────
 # IP Helpers
@@ -207,11 +233,9 @@ def get_user_ip():
 def get_ip_location(ip):
     api_key = os.getenv("IPGEOLOCATION_API_KEY")
     if not api_key:
-        app_logger.warning("No IPGEOLOCATION_API_KEY – geolocation skipped")
         return None
 
     if ip in ["127.0.0.1", "::1", "unknown", "0.0.0.0"] or ip.startswith(("192.168.", "10.")):
-        app_logger.info(f"Local/private IP ({ip}) – geolocation skipped")
         return None
 
     max_retries = 3
@@ -219,39 +243,21 @@ def get_ip_location(ip):
         try:
             url = f"https://api.ipgeolocation.io/ipgeo?apiKey={api_key}&ip={ip}"
             response = requests.get(url, timeout=8)
-
-            if response.status_code == 429:
-                retry_after = int(response.headers.get("Retry-After", 60))
-                app_logger.warning(f"Rate limit – retry after {retry_after}s")
-                time.sleep(retry_after)
-                continue
-
             if response.status_code != 200:
-                app_logger.warning(f"ipgeolocation HTTP {response.status_code}")
                 return None
-
             data = response.json()
             if "message" in data and data["message"]:
-                app_logger.warning(f"ipgeolocation error: {data['message']}")
                 return None
-
-            location = {
+            return {
                 "country": data.get("country_name", ""),
                 "region": data.get("state_prov", ""),
                 "city": data.get("city", ""),
                 "lat": str(data.get("latitude", "")) if data.get("latitude") is not None else None,
                 "lon": str(data.get("longitude", "")) if data.get("longitude") is not None else None,
-                "timezone": data.get("time_zone", {}).get("name", ""),
             }
-            app_logger.info(f"Geolocation success: {location}")
-            return location
-
-        except Exception as e:
-            app_logger.error(f"ipgeolocation failed (attempt {attempt+1}): {str(e)}")
+        except Exception:
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)
-
-    app_logger.error(f"ipgeolocation failed after {max_retries} attempts")
     return None
 
 # ────────────────────────────────────────────────
@@ -266,14 +272,21 @@ def chat():
     try:
         message = request.json.get("message")
         if not message:
-            return jsonify({"reply": "Please enter a message"})
+            return jsonify({"reply": "Please enter a message"}), 400
+
+        vector_db, retriever = get_vector_db()
+        if not retriever:
+            return jsonify({"reply": "Knowledge base not loaded"}), 503
+
+        count = vector_db._collection.count() if vector_db else 0
+        if count == 0:
+            return jsonify({"reply": "No documents uploaded yet."})
 
         ip = get_user_ip()
-        app_logger.info(f"[CHAT] Client IP: {ip}")
+        app_logger.info(f"[CHAT] IP: {ip} | docs: {count}")
 
         db = get_db_connection()
         if not db:
-            app_logger.error("[CHAT] Database connection failed")
             return jsonify({"reply": "Database unavailable"}), 503
 
         cursor = db.cursor(dictionary=True)
@@ -309,16 +322,16 @@ def chat():
         """, (session_id, ip_id, message, response))
         db.commit()
 
-        app_logger.info(f"[CHAT] Processed | user: '{message[:80]}...' | bot: '{response[:80]}...'")
+        app_logger.info(f"[CHAT] user: '{message[:70]}...' | bot: '{response[:70]}...'")
 
         return jsonify({"reply": response})
 
     except Exception as e:
         app_logger.error(f"[CHAT] Critical error: {str(e)}", exc_info=True)
-        return jsonify({"reply": "Server error occurred."}), 500
+        return jsonify({"reply": "Server error"}), 500
 
 # ────────────────────────────────────────────────
-# Admin decorator & routes
+# Admin decorator
 # ────────────────────────────────────────────────
 def admin_required(f):
     def wrapper(*args, **kwargs):
@@ -327,6 +340,10 @@ def admin_required(f):
         return f(*args, **kwargs)
     wrapper.__name__ = f.__name__
     return wrapper
+
+# ────────────────────────────────────────────────
+# Admin routes
+# ────────────────────────────────────────────────
 
 @app.route("/admin/register", methods=["GET", "POST"])
 def admin_register():
@@ -518,7 +535,7 @@ def delete_document(doc_id):
         if vector_db:
             try:
                 results = vector_db.get(where={"document_id": str(doc_id)})
-                if results and results['ids']:
+                if results and results.get('ids'):
                     vector_db.delete(ids=results['ids'])
             except Exception as e:
                 rag_logger.error(f"Chroma delete failed: {e}")
@@ -578,7 +595,6 @@ def toggle_admin_status():
 @app.route("/admin/view-errors")
 @admin_required
 def admin_view_errors():
-
     app_logs = {}
     rag_logs = {}
 
@@ -592,9 +608,8 @@ def admin_view_errors():
             with open(path, "r", encoding="utf-8") as f:
                 lines = f.readlines()[-120:]
                 content = "".join(lines) or "(no recent entries)"
-
         except Exception as e:
-            content = f"Cannot read: {str(e)}"
+            content = f"Cannot read log: {str(e)}"
 
         if "app" in name:
             app_logs[name] = content
@@ -607,19 +622,61 @@ def admin_view_errors():
         rag_logs=rag_logs
     )
 
-@app.route("/admin/chats")
+@app.route("/admin/")
 @admin_required
-def view_chats():
+def all_messages():
     db = get_db_connection()
-    cursor = db.cursor()
+    cursor = db.cursor(dictionary=True)
+
     cursor.execute("""
-        SELECT chat_logs.id, ip_addresses.ip_address, ip_addresses.country, ip_addresses.city,
-               chat_logs.user_message, chat_logs.bot_response, chat_logs.created_at
-        FROM chat_logs JOIN ip_addresses ON chat_logs.ip_id = ip_addresses.id
-        ORDER BY chat_logs.created_at DESC
+        SELECT 
+            ip_addresses.id AS ip_id,
+            ip_addresses.ip_address,
+            ip_addresses.country,
+            ip_addresses.city,
+            COUNT(chat_logs.id) AS message_count,
+            MAX(chat_logs.created_at) AS last_message_at
+        FROM ip_addresses
+        LEFT JOIN chat_logs ON ip_addresses.id = chat_logs.ip_id
+        GROUP BY ip_addresses.id
+        HAVING message_count > 0
+        ORDER BY last_message_at DESC
     """)
-    chats = cursor.fetchall()
-    return render_template("admin_chats.html", chats=chats)
+    unique_users = cursor.fetchall()
+
+    selected_ip_id = request.args.get('ip_id', type=int)
+    selected_messages = []
+    selected_ip_info = None
+
+    if selected_ip_id:
+        cursor.execute("""
+            SELECT 
+                chat_logs.user_message,
+                chat_logs.bot_response,
+                chat_logs.created_at
+            FROM chat_logs
+            WHERE chat_logs.ip_id = %s
+            ORDER BY chat_logs.created_at ASC
+        """, (selected_ip_id,))
+        selected_messages = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT ip_address, country, city 
+            FROM ip_addresses 
+            WHERE id = %s
+        """, (selected_ip_id,))
+        selected_ip_info = cursor.fetchone()
+
+    cursor.close()
+    db.close()
+
+    return render_template(
+        "all_messages.html",
+        unique_users=unique_users,
+        selected_messages=selected_messages,
+        selected_ip_info=selected_ip_info,
+        selected_ip_id=selected_ip_id
+    )
 
 # ────────────────────────────────────────────────
 # Error Handlers
@@ -650,7 +707,7 @@ def method_not_allowed(e):
     return render_template("errors/405.html"), 405
 
 # ────────────────────────────────────────────────
-# Start the server
+# Start server
 # ────────────────────────────────────────────────
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5000, use_reloader=False)

@@ -1,63 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Knowledge Base - Admin</title>
 
-<h2>Manage Knowledge Base</h2>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
 
-{% if error %}
-    <p style="color:#c53030; font-weight:bold;">{{ error }}</p>
-{% endif %}
-{% if success %}
-    <p style="color:#2f855a; font-weight:bold;">{{ success }}</p>
-{% endif %}
+  <style>
+    :root {
+      --bg:        #fdfdf9;
+      --surface:   #ffffff;
+      --border:    #e2e8f0;
+      --text-base: #1e293b;
+      --text-mute: #64748b;
+      --text-light:#94a3b8;
+      --accent:    #64748b;
+      --accent-h:  #475569;
+      --hover:     #f1f5f9;
+      --active-bg: #e2e8f0;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.04);
+      --radius:    0.75rem;
+    }
 
-<!-- Upload form -->
-<div style="margin: 24px 0; padding: 20px; background:#f9fafb; border:1px solid #e2e8f0; border-radius:8px;">
-    <h3>Upload New PDF</h3>
-    <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="pdf" accept=".pdf" required style="margin:12px 0;" />
-        <button type="submit" style="padding:10px 20px; background:#3182ce; color:white; border:none; border-radius:6px; cursor:pointer;">
+    body {
+      background: var(--bg);
+      color: var(--text-base);
+      font-feature-settings: "cv03", "cv04", "ss01";
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      margin: 0;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.22s ease, transform 0.22s ease;
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+
+    .sidebar {
+      background: #fafcff;
+      border-right: 1px solid var(--border);
+      box-shadow: 1px 0 0 0 rgba(226,232,240,0.8);
+    }
+
+    .sidebar-link {
+      border-radius: 0.625rem;
+      color: var(--text-mute);
+      transition: all 0.18s ease;
+      font-size: 0.94rem;
+    }
+
+    .sidebar-link:hover {
+      background: var(--hover);
+      color: var(--text-base);
+    }
+
+    .sidebar-active {
+      background: var(--active-bg) !important;
+      color: var(--text-base) !important;
+      font-weight: 600;
+      border-left: 3.5px solid var(--accent);
+    }
+
+    .sidebar-active i {
+      color: var(--accent-h) !important;
+    }
+
+    header {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    table th {
+      background: #f8fafc;
+      color: var(--text-mute);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.6875rem;
+      letter-spacing: 0.04em;
+      padding: 0.875rem 1.25rem;
+      text-align: left;
+    }
+
+    table td {
+      color: #334155;
+      padding: 0.875rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    table tr:hover {
+      background: #f8fafc;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.625rem 1.25rem;
+      font-weight: 500;
+      border-radius: 0.5rem;
+      transition: all 0.18s ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+      font-size: 0.9rem;
+      padding: 0.4rem 0.9rem;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .btn-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .btn-link:hover {
+      color: var(--accent-h);
+      text-decoration: underline;
+    }
+
+    .message {
+      padding: 1rem;
+      border-radius: var(--radius);
+      margin-bottom: 1.5rem;
+      font-weight: 500;
+    }
+
+    .message-success {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+
+    .message-error {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+
+    .icon-muted {
+      color: #94a3b8;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen antialiased">
+
+<div class="flex min-h-screen">
+
+  <!-- Sidebar (same as dashboard) -->
+  <aside class="w-64 sidebar flex flex-col sticky top-0 h-screen z-20">
+
+    <div class="p-5 text-xl font-semibold flex items-center gap-3 border-b border-[var(--border)] bg-white/70 backdrop-blur-sm">
+      <i data-lucide="layout-dashboard" class="w-6 h-6 text-[var(--accent)]"></i>
+      Admin
+    </div>
+
+    <nav class="flex-1 p-4 space-y-1.5 text-sm">
+      <a href="/admin/dashboard"
+         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="home" class="w-5 h-5"></i>
+        Dashboard
+      </a>
+
+      <a href="/admin/knowledge-base"
+         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition sidebar-active">
+        <i data-lucide="database" class="w-5 h-5"></i>
+        Knowledge
+      </a>
+
+      <a href="/admin/ip-addresses"
+         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="globe" class="w-5 h-5"></i>
+        IP Addresses
+      </a>
+
+      <a href="/admin/manage-admins"
+         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="users" class="w-5 h-5"></i>
+        Manage Admins
+      </a>
+
+      <div class="my-4 h-px bg-[var(--border)]"></div>
+
+      <a href="/"
+         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="book-open-check" class="w-5 h-5"></i>
+        Test App
+      </a>
+
+      <a href="/admin"
+         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="messages-square" class="w-5 h-5"></i>
+        Messages
+      </a>
+
+      <a href="/admin/view-errors"
+         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+        Errors
+      </a>
+    </nav>
+
+    <div class="p-4 border-t border-[var(--border)] bg-white/70 backdrop-blur-sm">
+      <a href="/admin/logout"
+         class="flex items-center justify-center gap-2.5 w-full bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium py-2.5 rounded-lg transition-colors">
+        <i data-lucide="log-out" class="w-4.5 h-4.5"></i>
+        Logout
+      </a>
+    </div>
+
+  </aside>
+
+
+  <!-- Main Content -->
+  <div class="flex-1 flex flex-col">
+
+    <header class="bg-white border-b border-[var(--border)] px-6 py-4 sticky top-0 z-10 backdrop-blur-sm">
+      <h1 class="text-xl font-semibold flex items-center gap-3 text-gray-800">
+        <i data-lucide="database" class="w-6 h-6 text-[var(--accent)]"></i>
+        Manage Knowledge Base
+      </h1>
+    </header>
+
+
+    <main class="p-6 flex-1 max-w-7xl mx-auto">
+
+      {% if error %}
+      <div class="message message-error">
+        {{ error }}
+      </div>
+      {% endif %}
+
+      {% if success %}
+      <div class="message message-success">
+        {{ success }}
+      </div>
+      {% endif %}
+
+      <!-- Upload form -->
+      <div class="card p-6 mb-8">
+        <h3 class="text-xl font-semibold mb-4">Upload New PDF</h3>
+        <p class="text-[var(--text-mute)] mb-5">
+          Upload a PDF document to add it to the knowledge base. It will be processed and split into chunks automatically.
+        </p>
+
+        <form method="POST" enctype="multipart/form-data">
+          <div class="mb-5">
+            <input 
+              type="file" 
+              name="pdf" 
+              accept=".pdf" 
+              required 
+              class="block w-full max-w-md text-sm text-gray-500
+                     file:mr-4 file:py-2 file:px-4
+                     file:rounded-md file:border-0
+                     file:text-sm file:font-semibold
+                     file:bg-blue-50 file:text-blue-700
+                     hover:file:bg-blue-100"
+            />
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i data-lucide="upload" class="w-4 h-4 mr-2"></i>
             Upload & Process PDF
-        </button>
-    </form>
+          </button>
+        </form>
+      </div>
+
+
+      <!-- Existing Documents -->
+      <div class="card overflow-hidden">
+        <div class="px-6 py-4 border-b border-[var(--border)]">
+          <h3 class="text-xl font-semibold">Existing Documents</h3>
+        </div>
+
+        {% if documents %}
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Filename</th>
+                <th style="text-align:center;">Chunks</th>
+                <th>Uploaded</th>
+                <th style="text-align:center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for doc in documents %}
+              <tr class="hover:bg-gray-50/70 transition-colors">
+                <td>{{ doc.id }}</td>
+                <td class="font-medium">{{ doc.filename }}</td>
+                <td style="text-align:center;">{{ doc.chunk_count|default(0) }}</td>
+                <td><span class="text-[var(--text-mute)] text-sm">{{ doc.uploaded_at }}</span></td>
+                <td style="text-align:center; white-space:nowrap;">
+                  <a href="/admin/knowledge-base/document/{{ doc.id }}/chunks" 
+                     class="btn-link mr-5">
+                    View Chunks
+                  </a>
+                  <form action="/admin/knowledge-base/delete/{{ doc.id }}" method="POST" style="display:inline;">
+                    <button type="submit" class="btn btn-danger"
+                            onclick="return confirm('Delete {{ doc.filename }} and all its chunks?\nThis cannot be undone.');">
+                      Delete
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="p-10 text-center text-[var(--text-mute)]">
+          <p class="text-lg">No documents uploaded yet.</p>
+        </div>
+        {% endif %}
+      </div>
+
+    </main>
+
+  </div>
+
 </div>
 
-<h3>Existing Documents</h3>
+<script>
+  lucide.createIcons();
+</script>
 
-{% if documents %}
-<table style="width:100%; border-collapse:collapse; margin-top:16px;">
-    <thead>
-        <tr style="background:#edf2f7;">
-            <th style="padding:12px; text-align:left;">ID</th>
-            <th style="padding:12px; text-align:left;">Filename</th>
-            <th style="padding:12px; text-align:center;">Chunks</th>
-            <th style="padding:12px; text-align:left;">Uploaded</th>
-            <th style="padding:12px; text-align:center;">Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for doc in documents %}
-        <tr style="border-bottom:1px solid #e2e8f0;">
-            <td style="padding:12px;">{{ doc.id }}</td>
-            <td style="padding:12px;">{{ doc.filename }}</td>
-            <td style="padding:12px; text-align:center;">{{ doc.chunk_count or 0 }}</td>
-            <td style="padding:12px;">{{ doc.uploaded_at }}</td>
-            <td style="padding:12px; text-align:center;">
-                <a href="/admin/knowledge-base/document/{{ doc.id }}/chunks"
-                   style="color:#2b6cb0; text-decoration:none; margin-right:12px;">View Chunks</a>
-                <form action="/admin/knowledge-base/delete/{{ doc.id }}" method="POST" style="display:inline;"
-                      onsubmit="return confirm('Delete {{ doc.filename }} and all its chunks? This cannot be undone.');">
-                    <button type="submit" style="color:#e53e3e; background:none; border:none; cursor:pointer; font-weight:bold;">
-                        Delete
-                    </button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-    <p><em>No documents uploaded yet.</em></p>
-{% endif %}
-
-<p style="margin-top:32px;">
-    <a href="/admin/dashboard" style="color:#4a5568;">← Back to Dashboard</a>
-</p>
-
+</body>
+</html>

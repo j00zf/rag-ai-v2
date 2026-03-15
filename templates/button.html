@@ -1,0 +1,84 @@
+<!-- === Single-file Floating College AI Chatbot Widget (iframe version) === -->
+<!-- Paste this entire block into any HTML page where you want the floating button -->
+
+<!-- Floating Chat Button -->
+<button id="college-chat-float-btn"
+  style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; width: 64px; height: 64px; border-radius: 9999px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; box-shadow: 0 10px 25px -5px rgba(59,130,246,0.5); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.25s ease;"
+  title="Open College AI Assistant">
+  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+</button>
+
+<!-- Chat Modal with iframe -->
+<div id="college-chat-modal"
+  style="position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); z-index: 9998; display: none; align-items: center; justify-content: center; padding: 16px;">
+
+  <div style="background: white; border-radius: 20px; width: 100%; max-width: 400px; height: 85vh; max-height: 760px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.45); overflow: hidden; display: flex; flex-direction: column; position: relative; border: 1px solid #e5e7eb;">
+
+    <!-- Modal Header -->
+    <div style="background: linear-gradient(to right, #1e40af, #3b82f6); color: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 44px; height: 44px; background: white; border-radius: 9999px; display: flex; align-items: center; justify-content: center;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="#1e40af">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c1.85 0 3.58-.51 5.06-1.39l4.18 1.04c.44.11.9-.22.9-.66v-.01c0-.2-.09-.39-.24-.52l-3.56-3.56C20.66 15.58 21 13.83 21 12c0-5.52-4.48-10-10-10zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8c0 1.48-.41 2.86-1.12 4.06l-.26.42.28.28c.39.39.39 1.02 0 1.41l-2.83 2.83c-.39.39-1.02.39-1.41 0l-.28-.28-.42.26C14.86 19.59 13.48 20 12 20z"/>
+          </svg>
+        </div>
+        <div>
+          <div style="font-weight: 600; font-size: 1.1rem;">College AI Assistant</div>
+          <div style="font-size: 0.8rem; opacity: 0.9;">Ask anything about college</div>
+        </div>
+      </div>
+      <button id="college-chat-close"
+        style="background: none; border: none; color: white; font-size: 28px; cursor: pointer; padding: 4px 8px; border-radius: 9999px; transition: background 0.2s;">
+        ×
+      </button>
+    </div>
+
+    <!-- Iframe containing your chat page -->
+    <iframe id="college-chat-iframe"
+      src="http://192.168.1.4:5000/"
+      frameborder="0"
+      style="flex: 1; width: 100%; border: none; background: #f8fafc;"
+      allowfullscreen>
+    </iframe>
+
+  </div>
+</div>
+
+<!-- JavaScript to control open/close -->
+<script>
+(function() {
+  const btn = document.getElementById('college-chat-float-btn');
+  const modal = document.getElementById('college-chat-modal');
+  const closeBtn = document.getElementById('college-chat-close');
+
+  // Open modal
+  btn.onclick = function() {
+    modal.style.display = 'flex';
+    // Optional: reload iframe to make sure fresh state (remove if not needed)
+    // document.getElementById('college-chat-iframe').src = document.getElementById('college-chat-iframe').src;
+  };
+
+  // Close modal
+  closeBtn.onclick = function() {
+    modal.style.display = 'none';
+  };
+
+  // Click outside to close
+  modal.onclick = function(e) {
+    if (e.target === modal) {
+      modal.style.display = 'none';
+    }
+  };
+
+  // Optional: close with Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modal.style.display !== 'none') {
+      modal.style.display = 'none';
+    }
+  });
+})();
+</script>
+
+<!-- === End of floating chatbot widget (iframe version) === -->
