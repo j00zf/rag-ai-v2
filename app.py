@@ -84,34 +84,44 @@ except Exception as e:
     groq_client = None
 
 # ────────────────────────────────────────────────
-# Vector DB (Chroma)
+# Vector DB (Chroma) – singleton style + debug
 # ────────────────────────────────────────────────
 vector_db = None
 retriever = None
-try:
-    app_logger.info("[VECTOR] Loading sentence-transformers embeddings...")
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    app_logger.info("[VECTOR] Embeddings loaded successfully")
 
-    app_logger.info("[VECTOR] Initializing Chroma vector store...")
-    vector_db = Chroma(
-        persist_directory="chroma_db",
-        embedding_function=embeddings,
-        collection_name="rag_documents"
-    )
-    collection_count = vector_db._collection.count()
-    app_logger.info(f"[VECTOR] Chroma initialized OK. Collection count: {collection_count}")
+def initialize_vector_db():
+    global vector_db, retriever
+    if vector_db is not None:
+        app_logger.info("[VECTOR] Already initialized – skipping")
+        return
 
-    retriever = vector_db.as_retriever(search_kwargs={"k": 3})
-    app_logger.info("[VECTOR] Retriever created successfully")
+    try:
+        app_logger.info("[VECTOR] Loading sentence-transformers embeddings...")
+        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        app_logger.info("[VECTOR] Embeddings loaded successfully")
 
-except Exception as e:
-    import traceback
-    error_msg = f"[VECTOR] Initialization failed: {str(e)}\n{traceback.format_exc()}"
-    rag_logger.error(error_msg)
-    app_logger.error(error_msg)
-    vector_db = None
-    retriever = None
+        app_logger.info("[VECTOR] Initializing Chroma vector store...")
+        vector_db = Chroma(
+            persist_directory="chroma_db",
+            embedding_function=embeddings,
+            collection_name="rag_documents"
+        )
+        count = vector_db._collection.count()
+        app_logger.info(f"[VECTOR] Chroma initialized OK. Collection count: {count}")
+
+        retriever = vector_db.as_retriever(search_kwargs={"k": 3})
+        app_logger.info("[VECTOR] Retriever created successfully")
+
+    except Exception as e:
+        import traceback
+        error_msg = f"[VECTOR] Initialization failed: {str(e)}\n{traceback.format_exc()}"
+        rag_logger.error(error_msg)
+        app_logger.error(error_msg)
+        vector_db = None
+        retriever = None
+
+# Call it once at startup
+initialize_vector_db()
 
 # ────────────────────────────────────────────────
 # IP Helpers
