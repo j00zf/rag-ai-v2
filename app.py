@@ -33,16 +33,13 @@ os.makedirs("logs", exist_ok=True)
 def setup_logger(name, log_file):
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
-
     file_handler = logging.FileHandler(log_file)
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
-
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
-
     return logger
 
 app_logger = setup_logger("app_logger", "logs/app.log")
@@ -84,7 +81,7 @@ except Exception as e:
     groq_client = None
 
 # ────────────────────────────────────────────────
-# Vector DB – lazy initialization (called on first use)
+# Lazy Vector DB initialization – called on first use
 # ────────────────────────────────────────────────
 def get_vector_db():
     if not hasattr(get_vector_db, "vector_db") or not hasattr(get_vector_db, "retriever"):
@@ -105,7 +102,7 @@ def get_vector_db():
             retriever = vector_db.as_retriever(search_kwargs={"k": 3})
             app_logger.info("[VECTOR] Retriever ready")
 
-            # Cache it at function level
+            # Cache on the function object
             get_vector_db.vector_db = vector_db
             get_vector_db.retriever = retriever
 
@@ -133,7 +130,6 @@ def process_pdf(path, document_id):
         app_logger.info(f"[PDF] Processing file: {path}")
         loader = PyPDFLoader(path)
         documents = loader.load()
-
         splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         docs = splitter.split_documents(documents)
 
@@ -317,7 +313,7 @@ def chat():
         return jsonify({"reply": "Server error occurred."}), 500
 
 # ────────────────────────────────────────────────
-# Admin decorator & routes (all included)
+# Admin decorator & routes
 # ────────────────────────────────────────────────
 def admin_required(f):
     def wrapper(*args, **kwargs):
