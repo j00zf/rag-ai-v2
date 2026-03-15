@@ -4,3 +4,4 @@ chroma_db/
 *.env
 logs/
 numpy/
+wsgi.py
