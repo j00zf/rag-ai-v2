@@ -32,15 +32,13 @@ os.makedirs("logs", exist_ok=True)
 # ────────────────────────────────────────────────
 def setup_logger(name, log_file):
     logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)  # INFO so we see geolocation debug messages
+    logger.setLevel(logging.INFO)
 
-    # File handler
     file_handler = logging.FileHandler(log_file)
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
-    # Console handler – visible in terminal
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
@@ -56,7 +54,6 @@ rag_logger = setup_logger("rag_logger", "logs/rag.log")
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY") or "fallback-secret-key-change-me"
 
-# Global session ID (in production → use per-user/session)
 session_id = str(uuid.uuid4())
 
 # ────────────────────────────────────────────────
@@ -65,11 +62,11 @@ session_id = str(uuid.uuid4())
 def get_db_connection():
     try:
         conn = mysql.connector.connect(
-            host=os.getenv("MYSQL_HOST"),
+            host=os.getenv("MYSQL_HOST", "127.0.0.1"),
             user=os.getenv("MYSQL_USER"),
             password=os.getenv("MYSQL_PASSWORD"),
             database=os.getenv("MYSQL_DB"),
-            port=int(os.getenv("MYSQL_PORT", 3307))
+            port=int(os.getenv("MYSQL_PORT", 3306))
         )
         return conn
     except Exception as e:
@@ -86,14 +83,31 @@ except Exception as e:
     groq_client = None
 
 # ────────────────────────────────────────────────
-# Vector DB (Chroma)
+# Vector DB (Chroma) – improved initialization
 # ────────────────────────────────────────────────
+vector_db = None
+retriever = None
 try:
+    app_logger.info("[INIT] Loading sentence-transformers embeddings...")
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    vector_db = Chroma(persist_directory="chroma_db", embedding_function=embeddings)
+    app_logger.info("[INIT] Embeddings loaded successfully")
+
+    app_logger.info("[INIT] Initializing Chroma vector store...")
+    vector_db = Chroma(
+        persist_directory="chroma_db",
+        embedding_function=embeddings,
+        collection_name="rag_documents"  # explicit name prevents conflicts
+    )
+    app_logger.info(f"[INIT] Chroma initialized OK. Collection count: {vector_db._collection.count()}")
+    
     retriever = vector_db.as_retriever(search_kwargs={"k": 3})
+    app_logger.info("[INIT] Retriever created successfully")
+
 except Exception as e:
-    rag_logger.error(f"Vector DB init error: {str(e)}")
+    import traceback
+    error_msg = f"Vector DB initialization failed: {str(e)}\n{traceback.format_exc()}"
+    rag_logger.error(error_msg)
+    app_logger.error(error_msg)
     vector_db = None
     retriever = None
 
@@ -112,12 +126,11 @@ def get_user_ip():
 def get_ip_location(ip):
     api_key = os.getenv("IPGEOLOCATION_API_KEY")
     if not api_key:
-        app_logger.warning("No IPGEOLOCATION_API_KEY found in .env – skipping geolocation")
+        app_logger.warning("No IPGEOLOCATION_API_KEY – geolocation skipped")
         return None
 
-    # Skip private/local IPs
     if ip in ["127.0.0.1", "::1", "unknown", "0.0.0.0"] or ip.startswith(("192.168.", "10.")):
-        app_logger.info(f"Local/private IP detected ({ip}) – skipping geolocation")
+        app_logger.info(f"Local/private IP ({ip}) – geolocation skipped")
         return None
 
     max_retries = 3
@@ -128,18 +141,17 @@ def get_ip_location(ip):
 
             if response.status_code == 429:
                 retry_after = int(response.headers.get("Retry-After", 60))
-                app_logger.warning(f"Rate limit hit – retry after {retry_after}s")
+                app_logger.warning(f"Rate limit – retry after {retry_after}s")
                 time.sleep(retry_after)
                 continue
 
             if response.status_code != 200:
-                app_logger.warning(f"HTTP {response.status_code} from ipgeolocation for {ip}")
+                app_logger.warning(f"ipgeolocation HTTP {response.status_code}")
                 return None
 
             data = response.json()
-
             if "message" in data and data["message"]:
-                app_logger.warning(f"ipgeolocation error for {ip}: {data['message']}")
+                app_logger.warning(f"ipgeolocation error: {data['message']}")
                 return None
 
             location = {
@@ -150,20 +162,15 @@ def get_ip_location(ip):
                 "lon": str(data.get("longitude", "")) if data.get("longitude") is not None else None,
                 "timezone": data.get("time_zone", {}).get("name", ""),
             }
-
-            app_logger.info(f"Geolocation success for {ip}: {location}")
+            app_logger.info(f"Geolocation success: {location}")
             return location
 
-        except requests.exceptions.RequestException as e:
-            app_logger.error(f"ipgeolocation request failed (attempt {attempt+1}): {str(e)}")
+        except Exception as e:
+            app_logger.error(f"ipgeolocation failed (attempt {attempt+1}): {str(e)}")
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)
-            continue
-        except ValueError as e:
-            app_logger.error(f"ipgeolocation JSON decode error for {ip}: {str(e)}")
-            return None
 
-    app_logger.error(f"ipgeolocation lookup failed after {max_retries} attempts for {ip}")
+    app_logger.error(f"ipgeolocation failed after {max_retries} attempts")
     return None
 
 # ────────────────────────────────────────────────
@@ -175,8 +182,10 @@ def process_pdf(path, document_id):
         return
 
     try:
+        app_logger.info(f"Processing PDF: {path}")
         loader = PyPDFLoader(path)
         documents = loader.load()
+
         splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         docs = splitter.split_documents(documents)
 
@@ -189,13 +198,16 @@ def process_pdf(path, document_id):
                     (document_id, doc.page_content, idx)
                 )
             db.commit()
+            app_logger.info(f"Saved {len(docs)} chunks to database")
 
         metadata_list = [{"document_id": str(document_id), "chunk_index": i} for i in range(len(docs))]
         vector_db.add_documents(docs, metadatas=metadata_list)
         vector_db.persist()
+        app_logger.info(f"Added {len(docs)} documents to Chroma vector store")
 
     except Exception as e:
         rag_logger.error(f"PDF processing failed: {str(e)}")
+        app_logger.error(f"PDF processing failed: {str(e)}")
 
 # ────────────────────────────────────────────────
 # RAG – ask bot
@@ -245,7 +257,7 @@ def chat():
             return jsonify({"reply": "Please enter a message"})
 
         ip = get_user_ip()
-        app_logger.info(f"[CHAT] Client IP detected: {ip}")
+        app_logger.info(f"[CHAT] Client IP: {ip}")
 
         db = get_db_connection()
         if not db:
@@ -259,12 +271,8 @@ def chat():
 
         if ip_row:
             ip_id = ip_row['id']
-            app_logger.info(f"[CHAT] Existing IP found → ip_id = {ip_id}")
         else:
-            app_logger.info(f"[CHAT] New IP → attempting geolocation lookup for {ip}")
             location = get_ip_location(ip)
-
-            # Always save IP – location fields can be NULL
             cursor.execute("""
                 INSERT INTO ip_addresses
                 (ip_address, country, region, city, latitude, longitude)
@@ -279,8 +287,6 @@ def chat():
             ))
             db.commit()
             ip_id = cursor.lastrowid
-            status = "SUCCESS" if location else "FAILED/MISSING"
-            app_logger.info(f"[CHAT] IP saved → ip_id = {ip_id} | location {status}")
 
         response = ask_bot(message)
 
@@ -291,14 +297,14 @@ def chat():
         """, (session_id, ip_id, message, response))
         db.commit()
 
-        app_logger.info(f"[CHAT] Message processed | user: '{message[:80]}...' | bot: '{response[:80]}...'")
+        app_logger.info(f"[CHAT] Processed | user: '{message[:80]}...' | bot: '{response[:80]}...'")
 
         return jsonify({"reply": response})
 
     except Exception as e:
         app_logger.error(f"[CHAT] Critical error: {str(e)}", exc_info=True)
-        return jsonify({"reply": "Server error occurred. Please try again later."}), 500
-
+        return jsonify({"reply": "Server error occurred."}), 500
+        
 # ────────────────────────────────────────────────
 # Admin decorator & routes
 # ────────────────────────────────────────────────
