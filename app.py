@@ -28,7 +28,7 @@ os.makedirs("chroma_db", exist_ok=True)
 os.makedirs("logs", exist_ok=True)
 
 # ────────────────────────────────────────────────
-# Logging setup – INFO level + console
+# Logging setup
 # ────────────────────────────────────────────────
 def setup_logger(name, log_file):
     logger = logging.getLogger(name)
@@ -52,7 +52,7 @@ rag_logger = setup_logger("rag_logger", "logs/rag.log")
 # Flask application
 # ────────────────────────────────────────────────
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY") or "fallback-secret-key-change-me"
+app.secret_key = os.getenv("SECRET_KEY") or "fallback-secret-key-change-me-please"
 
 session_id = str(uuid.uuid4())
 
@@ -63,9 +63,9 @@ def get_db_connection():
     try:
         conn = mysql.connector.connect(
             host=os.getenv("MYSQL_HOST", "127.0.0.1"),
-            user=os.getenv("MYSQL_USER"),
-            password=os.getenv("MYSQL_PASSWORD"),
-            database=os.getenv("MYSQL_DB"),
+            user=os.getenv("MYSQL_USER", "root"),
+            password=os.getenv("MYSQL_PASSWORD", ""),
+            database=os.getenv("MYSQL_DB", "college_chat_bot"),
             port=int(os.getenv("MYSQL_PORT", 3306))
         )
         return conn
@@ -78,34 +78,36 @@ def get_db_connection():
 # ────────────────────────────────────────────────
 try:
     groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    app_logger.info("Groq client initialized successfully")
 except Exception as e:
     rag_logger.error(f"GROQ init error: {str(e)}")
     groq_client = None
 
 # ────────────────────────────────────────────────
-# Vector DB (Chroma) – improved initialization
+# Vector DB (Chroma)
 # ────────────────────────────────────────────────
 vector_db = None
 retriever = None
 try:
-    app_logger.info("[INIT] Loading sentence-transformers embeddings...")
+    app_logger.info("[VECTOR] Loading sentence-transformers embeddings...")
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    app_logger.info("[INIT] Embeddings loaded successfully")
+    app_logger.info("[VECTOR] Embeddings loaded successfully")
 
-    app_logger.info("[INIT] Initializing Chroma vector store...")
+    app_logger.info("[VECTOR] Initializing Chroma vector store...")
     vector_db = Chroma(
         persist_directory="chroma_db",
         embedding_function=embeddings,
-        collection_name="rag_documents"  # explicit name prevents conflicts
+        collection_name="rag_documents"
     )
-    app_logger.info(f"[INIT] Chroma initialized OK. Collection count: {vector_db._collection.count()}")
-    
+    collection_count = vector_db._collection.count()
+    app_logger.info(f"[VECTOR] Chroma initialized OK. Collection count: {collection_count}")
+
     retriever = vector_db.as_retriever(search_kwargs={"k": 3})
-    app_logger.info("[INIT] Retriever created successfully")
+    app_logger.info("[VECTOR] Retriever created successfully")
 
 except Exception as e:
     import traceback
-    error_msg = f"Vector DB initialization failed: {str(e)}\n{traceback.format_exc()}"
+    error_msg = f"[VECTOR] Initialization failed: {str(e)}\n{traceback.format_exc()}"
     rag_logger.error(error_msg)
     app_logger.error(error_msg)
     vector_db = None
@@ -182,7 +184,7 @@ def process_pdf(path, document_id):
         return
 
     try:
-        app_logger.info(f"Processing PDF: {path}")
+        app_logger.info(f"[PDF] Processing file: {path}")
         loader = PyPDFLoader(path)
         documents = loader.load()
 
@@ -198,16 +200,17 @@ def process_pdf(path, document_id):
                     (document_id, doc.page_content, idx)
                 )
             db.commit()
-            app_logger.info(f"Saved {len(docs)} chunks to database")
+            app_logger.info(f"[PDF] Saved {len(docs)} chunks to MySQL")
 
         metadata_list = [{"document_id": str(document_id), "chunk_index": i} for i in range(len(docs))]
         vector_db.add_documents(docs, metadatas=metadata_list)
         vector_db.persist()
-        app_logger.info(f"Added {len(docs)} documents to Chroma vector store")
+        app_logger.info(f"[PDF] Added {len(docs)} documents to Chroma")
 
     except Exception as e:
-        rag_logger.error(f"PDF processing failed: {str(e)}")
-        app_logger.error(f"PDF processing failed: {str(e)}")
+        error_msg = f"[PDF] Processing failed for {path}: {str(e)}"
+        rag_logger.error(error_msg)
+        app_logger.error(error_msg)
 
 # ────────────────────────────────────────────────
 # RAG – ask bot
@@ -304,7 +307,7 @@ def chat():
     except Exception as e:
         app_logger.error(f"[CHAT] Critical error: {str(e)}", exc_info=True)
         return jsonify({"reply": "Server error occurred."}), 500
-        
+
 # ────────────────────────────────────────────────
 # Admin decorator & routes
 # ────────────────────────────────────────────────
@@ -527,7 +530,7 @@ def delete_document(doc_id):
         return jsonify({"success": False, "message": str(e)}), 500
 
 # ────────────────────────────────────────────────
-# Other admin routes (unchanged but kept complete)
+# Other admin routes
 # ────────────────────────────────────────────────
 @app.route("/admin/ip-addresses")
 @admin_required
