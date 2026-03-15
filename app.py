@@ -578,15 +578,34 @@ def toggle_admin_status():
 @app.route("/admin/view-errors")
 @admin_required
 def admin_view_errors():
-    logs = {}
-    for name, path in {"App Errors": "logs/app.log", "RAG Errors": "logs/rag.log"}.items():
+
+    app_logs = {}
+    rag_logs = {}
+
+    log_files = {
+        "app.log": "logs/app.log",
+        "rag.log": "logs/rag.log"
+    }
+
+    for name, path in log_files.items():
         try:
             with open(path, "r", encoding="utf-8") as f:
                 lines = f.readlines()[-120:]
-                logs[name] = "".join(lines) or "(no recent entries)"
+                content = "".join(lines) or "(no recent entries)"
+
         except Exception as e:
-            logs[name] = f"Cannot read: {str(e)}"
-    return render_template("admin_view_errors.html", logs=logs)
+            content = f"Cannot read: {str(e)}"
+
+        if "app" in name:
+            app_logs[name] = content
+        else:
+            rag_logs[name] = content
+
+    return render_template(
+        "admin_view_errors.html",
+        app_logs=app_logs,
+        rag_logs=rag_logs
+    )
 
 @app.route("/admin/chats")
 @admin_required
