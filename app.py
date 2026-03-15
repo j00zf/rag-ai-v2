@@ -125,12 +125,12 @@ def process_pdf(path, document_id):
     vector_db, retriever = get_vector_db()  # note: both returned
     app_logger.info(f"[PDF-DEBUG] get_vector_db returned vector_db type: {type(vector_db)}")
     
-    if not vector_db:
+    if vector_db is None:  # ← changed from "not vector_db" to "is None"
         rag_logger.error("Vector DB not initialized – cannot process PDF")
-        app_logger.info("[PDF-DEBUG] vector_db is falsy → skipping")
+        app_logger.info("[PDF-DEBUG] vector_db is None → skipping")
         return
 
-    app_logger.info("[PDF-DEBUG] vector_db is valid → proceeding")
+    app_logger.info("[PDF-DEBUG] vector_db is not None → proceeding")
     try:
         app_logger.info(f"[PDF] Processing file: {path}")
         loader = PyPDFLoader(path)
@@ -157,6 +157,7 @@ def process_pdf(path, document_id):
     except Exception as e:
         rag_logger.error(f"[PDF] Processing failed: {str(e)}")
         app_logger.error(f"[PDF] Processing failed: {str(e)}")
+        
 # ────────────────────────────────────────────────
 # RAG – ask bot
 # ────────────────────────────────────────────────
