@@ -170,6 +170,11 @@
       color: #94a3b8;
       opacity: 0.9;
     }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
   </style>
 </head>
 
@@ -177,57 +182,35 @@
 
 <div class="flex min-h-screen">
 
-  <!-- Sidebar (same as dashboard) -->
+  <!-- Sidebar (same as before) -->
   <aside class="w-64 sidebar flex flex-col sticky top-0 h-screen z-20">
-
     <div class="p-5 text-xl font-semibold flex items-center gap-3 border-b border-[var(--border)] bg-white/70 backdrop-blur-sm">
       <i data-lucide="layout-dashboard" class="w-6 h-6 text-[var(--accent)]"></i>
       Admin
     </div>
 
     <nav class="flex-1 p-4 space-y-1.5 text-sm">
-      <a href="/admin/dashboard"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
-        <i data-lucide="home" class="w-5 h-5"></i>
-        Dashboard
+      <a href="/admin/dashboard" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="home" class="w-5 h-5"></i> Dashboard
       </a>
-
-      <a href="/admin/knowledge-base"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition sidebar-active">
-        <i data-lucide="database" class="w-5 h-5"></i>
-        Knowledge
+      <a href="/admin/knowledge-base" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition sidebar-active">
+        <i data-lucide="database" class="w-5 h-5"></i> Knowledge
       </a>
-
-      <a href="/admin/ip-addresses"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
-        <i data-lucide="globe" class="w-5 h-5"></i>
-        IP Addresses
+      <a href="/admin/ip-addresses" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="globe" class="w-5 h-5"></i> IP Addresses
       </a>
-
-      <a href="/admin/manage-admins"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
-        <i data-lucide="users" class="w-5 h-5"></i>
-        Manage Admins
+      <a href="/admin/manage-admins" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="users" class="w-5 h-5"></i> Manage Admins
       </a>
-
       <div class="my-4 h-px bg-[var(--border)]"></div>
-
-      <a href="/"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
-        <i data-lucide="book-open-check" class="w-5 h-5"></i>
-        Test App
+      <a href="/" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="book-open-check" class="w-5 h-5"></i> Test App
       </a>
-
-      <a href="/admin"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
-        <i data-lucide="messages-square" class="w-5 h-5"></i>
-        Messages
+      <a href="/admin/all-user-messages" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="messages-square" class="w-5 h-5"></i> Messages
       </a>
-
-      <a href="/admin/view-errors"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
-        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
-        Errors
+      <a href="/admin/view-errors" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="alert-triangle" class="w-5 h-5"></i> Errors
       </a>
     </nav>
 
@@ -238,9 +221,7 @@
         Logout
       </a>
     </div>
-
   </aside>
-
 
   <!-- Main Content -->
   <div class="flex-1 flex flex-col">
@@ -251,7 +232,6 @@
         Manage Knowledge Base
       </h1>
     </header>
-
 
     <main class="p-6 flex-1 max-w-7xl mx-auto">
 
@@ -267,15 +247,16 @@
       </div>
       {% endif %}
 
-      <!-- Upload form -->
+      <!-- Upload form with description -->
       <div class="card p-6 mb-8">
         <h3 class="text-xl font-semibold mb-4">Upload New PDF</h3>
         <p class="text-[var(--text-mute)] mb-5">
-          Upload a PDF document to add it to the knowledge base. It will be processed and split into chunks automatically.
+          Upload a PDF document to add it to the knowledge base. Provide a short description to help identify its content later.
         </p>
 
         <form method="POST" enctype="multipart/form-data">
           <div class="mb-5">
+            <label class="block text-sm font-medium text-gray-700 mb-2">PDF File</label>
             <input 
               type="file" 
               name="pdf" 
@@ -289,13 +270,23 @@
                      hover:file:bg-blue-100"
             />
           </div>
+
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Description (optional)</label>
+            <textarea 
+              name="description" 
+              rows="4"
+              placeholder="Enter details about this document (e.g. syllabus, timetable, admission guidelines, course structure...)"
+              class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            ></textarea>
+          </div>
+
           <button type="submit" class="btn btn-primary">
             <i data-lucide="upload" class="w-4 h-4 mr-2"></i>
             Upload & Process PDF
           </button>
         </form>
       </div>
-
 
       <!-- Existing Documents -->
       <div class="card overflow-hidden">
@@ -310,6 +301,7 @@
               <tr>
                 <th>ID</th>
                 <th>Filename</th>
+                <th>Description</th>
                 <th style="text-align:center;">Chunks</th>
                 <th>Uploaded</th>
                 <th style="text-align:center;">Actions</th>
@@ -320,6 +312,13 @@
               <tr class="hover:bg-gray-50/70 transition-colors">
                 <td>{{ doc.id }}</td>
                 <td class="font-medium">{{ doc.filename }}</td>
+                <td>
+                  {% if doc.description %}
+                    <span class="text-gray-700">{{ doc.description|truncate(120) }}</span>
+                  {% else %}
+                    <span class="text-[var(--text-mute)] italic">No description</span>
+                  {% endif %}
+                </td>
                 <td style="text-align:center;">{{ doc.chunk_count|default(0) }}</td>
                 <td><span class="text-[var(--text-mute)] text-sm">{{ doc.uploaded_at }}</span></td>
                 <td style="text-align:center; white-space:nowrap;">

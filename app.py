@@ -471,6 +471,8 @@ def admin_knowledge_base():
 
     if request.method == "POST" and 'pdf' in request.files:
         pdf = request.files['pdf']
+        description = request.form.get('description', '').strip()  # new field
+
         if pdf.filename == '':
             error = "No file selected"
         elif not pdf.filename.lower().endswith('.pdf'):
@@ -486,17 +488,26 @@ def admin_knowledge_base():
                 counter += 1
 
             pdf.save(path)
-            cursor.execute("INSERT INTO documents (filename, uploaded_at) VALUES (%s, NOW())", (filename,))
+
+            # Insert with description
+            cursor.execute(
+                "INSERT INTO documents (filename, description, uploaded_at) VALUES (%s, %s, NOW())",
+                (filename, description)
+            )
             db.commit()
             doc_id = cursor.lastrowid
+
             process_pdf(path, doc_id)
             success = f"Uploaded and processed: {filename}"
 
+    # Fetch documents including description
     cursor.execute("""
-        SELECT d.id, d.filename, d.uploaded_at,
+        SELECT d.id, d.filename, d.description, d.uploaded_at,
                COUNT(dc.id) as chunk_count
-        FROM documents d LEFT JOIN document_chunks dc ON d.id = dc.document_id
-        GROUP BY d.id ORDER BY d.uploaded_at DESC
+        FROM documents d 
+        LEFT JOIN document_chunks dc ON d.id = dc.document_id
+        GROUP BY d.id 
+        ORDER BY d.uploaded_at DESC
     """)
     documents = cursor.fetchall()
 
