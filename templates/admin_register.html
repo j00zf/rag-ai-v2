@@ -1,50 +1,234 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Registration</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 420px; margin: 60px auto; padding: 20px; }
-        .container { border: 1px solid #ddd; padding: 30px; border-radius: 8px; }
-        h2 { text-align: center; }
-        input { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #45a049; }
-        .error { color: #d32f2f; margin: 10px 0; }
-        .success { color: #2e7d32; margin: 10px 0; }
-        .back { text-align: center; margin-top: 20px; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Registration • Secure Access</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              600: '#10b981',   // emerald-500
+              700: '#059669',   // emerald-700
+            },
+            surface: {
+              light: '#ffffff',
+              dark: '#0f172a',
+            }
+          },
+          borderRadius: {
+            '2.5xl': '1.375rem',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    }
+    .dark body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(226, 232, 240, 0.5);
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .dark .card {
+      background: rgba(15, 23, 42, 0.65);
+      border-color: rgba(59, 69, 94, 0.5);
+    }
+
+    .input-group {
+      position: relative;
+    }
+
+    .input-group input,
+    .input-group textarea {
+      padding-top: 1.75rem;
+      padding-bottom: 0.5rem;
+    }
+
+    .input-group label {
+      position: absolute;
+      left: 1.5rem;
+      top: 1.125rem;
+      font-size: 1.125rem;
+      color: #94a3b8;
+      pointer-events: none;
+      transition: all 0.25s ease;
+    }
+
+    .input-group input:focus + label,
+    .input-group input:not(:placeholder-shown) + label,
+    .input-group textarea:focus + label,
+    .input-group textarea:not(:placeholder-shown) + label {
+      top: 0.625rem;
+      font-size: 0.875rem;
+      color: #10b981;
+    }
+
+    .btn-primary {
+      background: linear-gradient(to bottom right, #10b981, #059669);
+      box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 20px 35px -5px rgba(16, 185, 129, 0.5);
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(25px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-fade-in-up {
+      animation: fadeInUp 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+  </style>
 </head>
-<body>
 
-<div class="container">
-    <h2>Admin Registration</h2>
+<body class="min-h-screen flex items-center justify-center p-6 font-sans antialiased">
 
+  <div class="card w-full max-w-lg p-10 md:p-12 rounded-3xl shadow-2xl animate-fade-in-up">
+
+    <!-- Header -->
+    <div class="text-center mb-10">
+      <div class="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-950 dark:to-slate-800 text-emerald-600 dark:text-emerald-400 rounded-2xl mb-6 shadow-inner">
+        <i data-lucide="user-plus" class="w-14 h-14"></i>
+      </div>
+      <h1 class="text-4xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">
+        Admin Registration
+      </h1>
+      <p class="mt-3 text-lg text-slate-500 dark:text-slate-400">
+        Create a secure admin account
+      </p>
+    </div>
+
+    <!-- Messages -->
     {% if error %}
-        <div class="error">{{ error }}</div>
+    <div class="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-6 py-4 rounded-2xl mb-8 text-center font-medium shadow-sm">
+      {{ error }}
+    </div>
     {% endif %}
 
     {% if success %}
-        <div class="success">{{ success }}</div>
+    <div class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 px-6 py-4 rounded-2xl mb-8 text-center font-medium shadow-sm">
+      {{ success }}
+    </div>
     {% endif %}
 
-    <form method="POST" action="">
-        <input type="text" name="username" placeholder="Username" required autofocus>
-        <input type="password" name="password" placeholder="Password" required>
-        <input type="password" name="confirm_password" placeholder="Confirm Password" required>
+    <form method="POST" action="" class="space-y-8">
 
-        {% if registration_key_required %}
-        <input type="text" name="secret_key" placeholder="Registration Key" required>
-        {% endif %}
+      <!-- Username -->
+      <div class="input-group">
+        <input 
+          type="text" 
+          id="username" 
+          name="username" 
+          placeholder=" " 
+          required 
+          autofocus 
+          class="w-full px-5 pt-6 pb-2 bg-white/60 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-600 rounded-2xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-200 dark:focus:ring-emerald-900/30 outline-none transition-all text-lg text-slate-900 dark:text-slate-100 placeholder-transparent"
+        />
+        <label for="username" class="text-slate-500 dark:text-slate-400 font-medium">
+          Username
+        </label>
+      </div>
 
-        <button type="submit">Register</button>
+      <!-- Password -->
+      <div class="input-group">
+        <input 
+          type="password" 
+          id="password" 
+          name="password" 
+          placeholder=" " 
+          required 
+          class="w-full px-5 pt-6 pb-2 bg-white/60 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-600 rounded-2xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-200 dark:focus:ring-emerald-900/30 outline-none transition-all text-lg text-slate-900 dark:text-slate-100 placeholder-transparent"
+        />
+        <label for="password" class="text-slate-500 dark:text-slate-400 font-medium">
+          Password
+        </label>
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="input-group">
+        <input 
+          type="password" 
+          id="confirm_password" 
+          name="confirm_password" 
+          placeholder=" " 
+          required 
+          class="w-full px-5 pt-6 pb-2 bg-white/60 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-600 rounded-2xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-200 dark:focus:ring-emerald-900/30 outline-none transition-all text-lg text-slate-900 dark:text-slate-100 placeholder-transparent"
+        />
+        <label for="confirm_password" class="text-slate-500 dark:text-slate-400 font-medium">
+          Confirm Password
+        </label>
+      </div>
+
+      {% if registration_key_required %}
+      <div class="input-group">
+        <input 
+          type="text" 
+          id="secret_key" 
+          name="secret_key" 
+          placeholder=" " 
+          required 
+          class="w-full px-5 pt-6 pb-2 bg-white/60 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-600 rounded-2xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-200 dark:focus:ring-emerald-900/30 outline-none transition-all text-lg text-slate-900 dark:text-slate-100 placeholder-transparent"
+        />
+        <label for="secret_key" class="text-slate-500 dark:text-slate-400 font-medium">
+          Registration Key
+        </label>
+      </div>
+      {% endif %}
+
+      <!-- Submit -->
+      <button 
+        type="submit" 
+        class="btn-primary w-full py-4 text-white font-semibold text-lg rounded-2xl flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl active:scale-[0.98]"
+      >
+        <i data-lucide="user-plus" class="w-7 h-7"></i>
+        Create Account
+      </button>
+
     </form>
 
-    <div class="back">
-        <a href="/admin/login">← Back to Login</a>
+    <!-- Footer link -->
+    <div class="text-center mt-10 text-slate-500 dark:text-slate-400">
+      <p class="text-base">
+        Already have an account? 
+        <a href="/admin/login" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium underline-offset-4 hover:underline transition-colors">
+          Sign in here
+        </a>
+      </p>
     </div>
-</div>
+
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    // Auto dark mode (system preference)
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  </script>
 
 </body>
 </html>
