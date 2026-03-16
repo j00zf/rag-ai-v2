@@ -61,10 +61,10 @@ def get_db_connection():
     try:
         conn = mysql.connector.connect(
             host=os.getenv("MYSQL_HOST", "127.0.0.1"),
+            port=int(os.getenv("MYSQL_PORT", 3307)),           # ← updated default port
             user=os.getenv("MYSQL_USER", "root"),
             password=os.getenv("MYSQL_PASSWORD", ""),
-            database=os.getenv("MYSQL_DB", "college_chat_bot"),
-            port=int(os.getenv("MYSQL_PORT", 3306))
+            database=os.getenv("MYSQL_DB", "ollege_chatbot"),  # ← matches your DB name
         )
         return conn
     except Exception as e:
@@ -107,7 +107,7 @@ def get_vector_db():
 
         retriever = vector_db.as_retriever(
             search_type="similarity_score_threshold",
-            search_kwargs={"k": 6, "score_threshold": 0.26}
+            search_kwargs={"k": 8, "score_threshold": 0.24}   # ← tuned a bit higher k, lower threshold
         )
 
         get_vector_db.vector_db = vector_db
@@ -123,10 +123,10 @@ def get_vector_db():
         return None, None
 
 # ────────────────────────────────────────────────
-# PDF processing – FIXED VERSION
+# PDF processing – IMPROVED with description in metadata
 # ────────────────────────────────────────────────
-def process_pdf(path, document_id):
-    app_logger.info(f"[PDF] Processing file: {path}")
+def process_pdf(path, document_id, description=""):
+    app_logger.info(f"[PDF] Processing file: {path} (desc: {description[:60]}...)")
     vector_db, _ = get_vector_db()
     
     if vector_db is None:
@@ -139,7 +139,7 @@ def process_pdf(path, document_id):
         splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         docs = splitter.split_documents(documents)
 
-        # Save to MySQL
+        # Save chunks to MySQL (unchanged)
         db = get_db_connection()
         if db:
             cursor = db.cursor()
@@ -151,33 +151,34 @@ def process_pdf(path, document_id):
             db.commit()
             app_logger.info(f"[PDF] Saved {len(docs)} chunks to MySQL")
 
-        # Prepare metadata
+        # Prepare rich metadata – description goes here!
         metadata_list = [
             {
-                "document_id": str(document_id),
-                "chunk_index": i,
-                "source": os.path.basename(path)
+                "document_id":   str(document_id),
+                "chunk_index":   i,
+                "source":        os.path.basename(path),
+                "description":   description.strip() if description else "No description provided",
             }
             for i in range(len(docs))
         ]
 
-        # Attach metadata to documents (correct way)
+        # Attach metadata
         for doc, meta in zip(docs, metadata_list):
             doc.metadata.update(meta)
 
-        # Add to Chroma – correct call
+        # Add to vector store
         vector_db.add_documents(docs)
         vector_db.persist()
 
         new_count = vector_db._collection.count()
-        app_logger.info(f"[PDF] Successfully added {len(docs)} chunks → total documents now: {new_count}")
+        app_logger.info(f"[PDF] Added {len(docs)} chunks → total now: {new_count}")
 
     except Exception as e:
         rag_logger.error(f"[PDF] Processing failed: {str(e)}", exc_info=True)
         app_logger.error(f"[PDF] Processing failed: {str(e)}", exc_info=True)
 
 # ────────────────────────────────────────────────
-# RAG – stricter prompt
+# RAG – now uses document descriptions strongly
 # ────────────────────────────────────────────────
 def ask_bot(question):
     _, retriever = get_vector_db()
@@ -189,13 +190,36 @@ def ask_bot(question):
         if not docs:
             return "I don't have information about that in the college documents."
 
-        context = "\n\n".join([f"[Excerpt]:\n{doc.page_content}" for doc in docs])
+        # Build rich context with document descriptions
+        context_parts = []
+        doc_descriptions = set()  # avoid duplicates
 
-        prompt = f"""You are a helpful college information assistant.
-Answer **only** using the provided excerpts from official college documents.
+        for doc in docs:
+            meta = doc.metadata
+            src  = meta.get("source", "unknown.pdf")
+            desc = meta.get("description", "No description").strip()
+
+            if desc and desc != "No description provided":
+                doc_descriptions.add(f"• {src} — {desc}")
+
+            header = f"Document: {src}"
+            if desc and desc != "No description provided":
+                header += f"\nPurpose: {desc}"
+
+            context_parts.append(f"{header}\n{doc.page_content}")
+
+        context = "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n".join(context_parts)
+
+        # List of all relevant document purposes in prompt
+        available_docs_str = "\n".join(sorted(doc_descriptions)) if doc_descriptions else "(no descriptions available)"
+
+        prompt = f"""You are a helpful college information assistant.Anser based on the uploded documents. and desciptions. 
 Do NOT use your general knowledge. Do NOT make up information.
 If nothing relevant is found, reply exactly:
 "I don't have information about that in the available college documents."
+
+Available documents and their purpose:
+{available_docs_str}
 
 Excerpts:
 {context}
@@ -219,7 +243,7 @@ Use bullet points or numbered lists when helpful."""
         return "Sorry, I'm having trouble accessing the knowledge base."
 
 # ────────────────────────────────────────────────
-# IP Helpers
+# IP Helpers (unchanged)
 # ────────────────────────────────────────────────
 def get_user_ip():
     try:
@@ -261,7 +285,7 @@ def get_ip_location(ip):
     return None
 
 # ────────────────────────────────────────────────
-# Public routes
+# Public routes (chat mostly unchanged)
 # ────────────────────────────────────────────────
 @app.route("/")
 def home():
@@ -329,7 +353,7 @@ def chat():
     except Exception as e:
         app_logger.error(f"[CHAT] Critical error: {str(e)}", exc_info=True)
         return jsonify({"reply": "Server error"}), 500
-
+    
 # ────────────────────────────────────────────────
 # Admin decorator
 # ────────────────────────────────────────────────

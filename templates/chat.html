@@ -166,22 +166,24 @@
     }
 
     #input-area {
-      padding: 1.1rem 1.5rem;
+      padding: 1rem 1.5rem;
       background: white;
       border-top: 1px solid var(--border);
       display: flex;
-      gap: 0.9rem;
-      box-shadow: 0 -1px 3px rgba(0,0,0,0.03);
+      align-items: center;
+      gap: 0.8rem;
+      box-shadow: 0 -1px 4px rgba(0,0,0,0.04);
     }
 
     #message {
-      flex: 1;
-      padding: 0.95rem 1.4rem;
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 0.9rem 1.3rem;
       border: 1px solid var(--border);
       border-radius: 9999px;
       font-size: 1rem;
       outline: none;
-      transition: all 0.18s ease;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
 
     #message:focus {
@@ -190,17 +192,19 @@
     }
 
     button {
-      padding: 0.95rem 1.6rem;
+      flex: 0 0 auto;
+      padding: 0.9rem 1.4rem;
       background: var(--accent);
       color: white;
       border: none;
       border-radius: 9999px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.18s ease;
+      transition: background 0.2s, transform 0.1s;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      justify-content: center;
+      white-space: nowrap;
     }
 
     button:hover {
@@ -220,32 +224,35 @@
 
     /* ── Mobile adjustments ── */
     @media (max-width: 640px) {
+      #input-area {
+        padding: 0.9rem 1.2rem;
+        gap: 0.7rem;
+      }
+
+      #message {
+        padding: 0.85rem 1.2rem;
+        font-size: 0.98rem;
+      }
+
+      button {
+        padding: 0.85rem 1.3rem;
+        min-width: 54px; /* prevents button from becoming too small */
+      }
+
       #chatbox {
         padding: 1.2rem 1rem 0.8rem;
       }
-      .message {
-        max-width: 92%;
-        font-size: 0.98rem;
-        padding: 0.9rem 1.15rem;
-      }
-      header {
-        padding: 0.9rem 1.2rem;
-      }
-      header h1 {
-        font-size: 1.2rem;
-      }
+    }
+
+    /* Very narrow screens — still try to keep one line */
+    @media (max-width: 360px) {
       #input-area {
-        padding: 0.9rem 1.2rem;
-        flex-wrap: wrap;
-        gap: 0.7rem;
+        padding: 0.8rem 1rem;
+        gap: 0.6rem;
       }
-      #message {
-        flex: 1 1 100%;
-        min-width: 0;
-      }
+
       button {
-        flex: 0 0 auto;
-        padding: 0.9rem 1.4rem;
+        padding: 0.8rem 1.1rem;
       }
     }
   </style>
@@ -263,7 +270,6 @@
   <input id="message" type="text" placeholder="Ask anything about the college..." autofocus />
   <button onclick="sendMessage()">
     <i data-lucide="send" style="width:18px;height:18px;"></i>
-    Send
   </button>
 </div>
 
@@ -290,7 +296,6 @@
       msgDiv.className = "message user";
       msgDiv.textContent = text;
     } else {
-      // Bot message with markdown
       msgDiv = document.createElement("div");
       msgDiv.className = "message bot";
 
@@ -310,7 +315,6 @@
 
     wrapper.appendChild(msgDiv);
 
-    // Timestamp for bot messages
     if (!isLoading && !isUser) {
       const ts = document.createElement("div");
       ts.className = "timestamp";
