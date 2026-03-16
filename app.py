@@ -622,7 +622,7 @@ def admin_view_errors():
         rag_logs=rag_logs
     )
 
-@app.route("/admin/")
+@app.route("/admin/all-user-messages")
 @admin_required
 def all_messages():
     db = get_db_connection()

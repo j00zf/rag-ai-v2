@@ -5,3 +5,4 @@ chroma_db/
 logs/
 numpy/
 wsgi.py
+__pycache__/
