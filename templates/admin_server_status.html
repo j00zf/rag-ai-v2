@@ -1,79 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Server Status - Admin</title>
 
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js for live graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <style>
+    :root {
+      --bg:        #fdfdf9;
+      --surface:   #ffffff;
+      --border:    #e2e8f0;
+      --text-base: #1e293b;
+      --text-mute: #64748b;
+      --text-light:#94a3b8;
+      --accent:    #64748b;
+      --accent-h:  #475569;
+      --hover:     #f1f5f9;
+      --active-bg: #e2e8f0;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.04);
+      --radius:    0.75rem;
+    }
 
-<div class="container mx-auto p-6">
-  <h1 class="text-3xl font-bold mb-6">Server Status - DigitalOcean VPS</h1>
+    body {
+      background: var(--bg);
+      color: var(--text-base);
+      font-feature-settings: "cv03", "cv04", "ss01";
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      margin: 0;
+    }
 
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.22s ease, transform 0.22s ease;
+    }
 
-    <!-- CPU -->
-    <div class="card p-6">
-      <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-        <i data-lucide="cpu" class="w-6 h-6"></i> CPU Usage
-      </h2>
-      <p class="text-4xl font-bold text-blue-600">{{ stats.cpu_percent }}%</p>
-      <p class="text-sm text-gray-500 mt-2">Last 1 second average</p>
-    </div>
+    .card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
 
-    <!-- Memory -->
-    <div class="card p-6">
-      <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-        <i data-lucide="hard-drive" class="w-6 h-6"></i> Memory (RAM)
-      </h2>
-      <p class="text-2xl font-bold">
-        {{ stats.memory.used_gb }} GB / {{ stats.memory.total_gb }} GB
-      </p>
-      <div class="mt-3 bg-gray-200 rounded-full h-4">
-        <div class="bg-blue-600 h-4 rounded-full" style="width: {{ stats.memory.percent }}%"></div>
+    header {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    h1, h2 {
+      color: #1e293b;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+    }
+
+    .icon-muted {
+      color: #94a3b8;
+      opacity: 0.9;
+      transition: opacity 0.2s ease;
+    }
+
+    .card:hover .icon-muted {
+      opacity: 1;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      transition: width 0.5s ease;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 200px;
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen antialiased">
+
+  <div class="flex min-h-screen">
+
+    <!-- Sidebar (same as dashboard) -->
+    <aside class="w-64 sidebar flex flex-col sticky top-0 h-screen z-20">
+      <div class="p-5 text-xl font-semibold flex items-center gap-3 border-b border-[var(--border)] bg-white/70 backdrop-blur-sm">
+        <i data-lucide="layout-dashboard" class="w-6 h-6 text-[var(--accent)]"></i>
+        Admin
       </div>
-      <p class="text-sm text-gray-500 mt-2">{{ stats.memory.percent }}% used</p>
-    </div>
 
-    <!-- Disk -->
-    <div class="card p-6">
-      <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-        <i data-lucide="database" class="w-6 h-6"></i> Disk (Root /)
-      </h2>
-      <p class="text-2xl font-bold">
-        {{ stats.disk.used_gb }} GB / {{ stats.disk.total_gb }} GB
-      </p>
-      <div class="mt-3 bg-gray-200 rounded-full h-4">
-        <div class="bg-green-600 h-4 rounded-full" style="width: {{ stats.disk.percent }}%"></div>
+      <nav class="flex-1 p-4 space-y-1.5 text-sm">
+        <a href="/admin/dashboard" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+          <i data-lucide="home" class="w-5 h-5"></i> Dashboard
+        </a>
+        <a href="/admin/knowledge-base" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+          <i data-lucide="database" class="w-5 h-5"></i> Knowledge
+        </a>
+        <a href="/admin/ip-addresses" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+          <i data-lucide="globe" class="w-5 h-5"></i> IP Addresses
+        </a>
+        <a href="/admin/manage-admins" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+          <i data-lucide="users" class="w-5 h-5"></i> Manage Admins
+        </a>
+        <div class="my-4 h-px bg-[var(--border)]"></div>
+        <a href="/" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+          <i data-lucide="book-open-check" class="w-5 h-5"></i> Test App
+        </a>
+        <a href="/admin/all-user-messages" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+          <i data-lucide="messages-square" class="w-5 h-5"></i> Messages
+        </a>
+        <a href="/admin/view-errors" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i> Errors
+        </a>
+        <a href="/admin/server-status" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition sidebar-active">
+          <i data-lucide="server" class="w-5 h-5"></i> Server Status
+        </a>
+      </nav>
+
+      <div class="p-4 border-t border-[var(--border)] bg-white/70 backdrop-blur-sm">
+        <a href="/admin/logout"
+           class="flex items-center justify-center gap-2.5 w-full bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium py-2.5 rounded-lg transition-colors">
+          <i data-lucide="log-out" class="w-4.5 h-4.5"></i>
+          Logout
+        </a>
       </div>
-      <p class="text-sm text-gray-500 mt-2">{{ stats.disk.percent }}% used</p>
-    </div>
+    </aside>
 
-    <!-- Load Average -->
-    <div class="card p-6">
-      <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-        <i data-lucide="activity" class="w-6 h-6"></i> Load Average
-      </h2>
-      <p class="text-lg">
-        1 min: <strong>{{ stats.load_average['1min'] }}</strong><br>
-        5 min: <strong>{{ stats.load_average['5min'] }}</strong><br>
-        15 min: <strong>{{ stats.load_average['15min'] }}</strong>
-      </p>
-    </div>
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col">
 
-    <!-- Uptime -->
-    <div class="card p-6">
-      <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-        <i data-lucide="clock" class="w-6 h-6"></i> Server Uptime
-      </h2>
-      <p class="text-2xl font-bold">{{ stats.uptime }}</p>
-      <p class="text-sm text-gray-500 mt-2">As of {{ stats.timestamp }}</p>
+      <header class="bg-white border-b border-[var(--border)] px-6 py-4 sticky top-0 z-10 backdrop-blur-sm">
+        <h1 class="text-xl font-semibold flex items-center gap-3 text-gray-800">
+          <i data-lucide="server" class="w-6 h-6 text-[var(--accent)]"></i>
+          Server Status - DigitalOcean VPS
+        </h1>
+      </header>
+
+      <main class="p-6 flex-1 max-w-7xl mx-auto">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+
+          <!-- CPU Usage -->
+          <div class="card p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <i data-lucide="cpu" class="w-5 h-5 icon-muted"></i>
+                CPU Usage
+              </h3>
+              <span class="text-sm text-gray-500">Last 1 sec</span>
+            </div>
+            <p class="text-5xl font-bold text-blue-600 mb-2">{{ stats.cpu_percent }}%</p>
+            <div class="progress-bar">
+              <div class="progress-fill bg-blue-600" style="width: {{ stats.cpu_percent }}%"></div>
+            </div>
+            <div class="chart-container mt-4">
+              <canvas id="cpuChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Memory Usage -->
+          <div class="card p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <i data-lucide="hard-drive" class="w-5 h-5 icon-muted"></i>
+                Memory (RAM)
+              </h3>
+              <span class="text-sm text-gray-500">{{ stats.memory.percent }}% used</span>
+            </div>
+            <p class="text-4xl font-bold text-indigo-600 mb-2">
+              {{ stats.memory.used_gb }} / {{ stats.memory.total_gb }} GB
+            </p>
+            <div class="progress-bar">
+              <div class="progress-fill bg-indigo-600" style="width: {{ stats.memory.percent }}%"></div>
+            </div>
+            <div class="chart-container mt-4">
+              <canvas id="memoryChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Disk Usage -->
+          <div class="card p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <i data-lucide="database" class="w-5 h-5 icon-muted"></i>
+                Disk (Root /)
+              </h3>
+              <span class="text-sm text-gray-500">{{ stats.disk.percent }}% used</span>
+            </div>
+            <p class="text-4xl font-bold text-green-600 mb-2">
+              {{ stats.disk.used_gb }} / {{ stats.disk.total_gb }} GB
+            </p>
+            <div class="progress-bar">
+              <div class="progress-fill bg-green-600" style="width: {{ stats.disk.percent }}%"></div>
+            </div>
+            <div class="chart-container mt-4">
+              <canvas id="diskChart"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Load Average & Uptime -->
+        <div class="card p-6 mb-10">
+          <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <i data-lucide="activity" class="w-5 h-5 icon-muted"></i>
+              Load Average
+            </h3>
+            <p class="text-sm text-gray-600">
+              Uptime: <span class="font-medium text-gray-800">{{ stats.uptime }}</span>
+            </p>
+          </div>
+          <div class="grid grid-cols-3 gap-6 text-center">
+            <div class="p-4 bg-gray-50 rounded-lg">
+              <p class="text-3xl font-bold text-purple-600">{{ stats.load_average['1min'] }}</p>
+              <p class="text-sm text-gray-500 mt-1">1 min</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-lg">
+              <p class="text-3xl font-bold text-purple-600">{{ stats.load_average['5min'] }}</p>
+              <p class="text-sm text-gray-500 mt-1">5 min</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-lg">
+              <p class="text-3xl font-bold text-purple-600">{{ stats.load_average['15min'] }}</p>
+              <p class="text-sm text-gray-500 mt-1">15 min</p>
+            </div>
+          </div>
+          <p class="text-sm text-gray-500 mt-6 text-center">Last updated: {{ stats.timestamp }}</p>
+        </div>
+
+        <!-- Refresh Button -->
+        <div class="text-center">
+          <button onclick="location.reload()" class="btn btn-primary px-8 py-4 text-lg">
+            <i data-lucide="refresh-cw" class="w-6 h-6 mr-3"></i>
+            Refresh Now
+          </button>
+        </div>
+
+      </main>
+
     </div>
 
   </div>
 
-  <!-- Refresh button -->
-  <div class="mt-8 text-center">
-    <button onclick="location.reload()" class="btn btn-primary px-6 py-3">
-      <i data-lucide="refresh-cw" class="w-5 h-5 mr-2"></i>
-      Refresh Stats
-    </button>
-  </div>
 </div>
+
 <script>
-setTimeout(() => location.reload(), 60000); // Auto-refresh every 60 seconds
+  lucide.createIcons();
+
+  // Auto-refresh every 60 seconds
+  setTimeout(() => location.reload(), 60000);
+
+  // Sample data for graphs (you can replace with real history later)
+  const cpuData = {
+    labels: ['-50s', '-40s', '-30s', '-20s', '-10s', 'Now'],
+    datasets: [{
+      label: 'CPU %',
+      data: [{{ stats.cpu_percent }}, {{ stats.cpu_percent }}, {{ stats.cpu_percent }}, {{ stats.cpu_percent }}, {{ stats.cpu_percent }}, {{ stats.cpu_percent }}],
+      borderColor: '#3b82f6',
+      backgroundColor: 'rgba(59, 130, 246, 0.2)',
+      tension: 0.4,
+      fill: true
+    }]
+  };
+
+  const memoryData = {
+    labels: ['-50s', '-40s', '-30s', '-20s', '-10s', 'Now'],
+    datasets: [{
+      label: 'Memory %',
+      data: [{{ stats.memory.percent }}, {{ stats.memory.percent }}, {{ stats.memory.percent }}, {{ stats.memory.percent }}, {{ stats.memory.percent }}, {{ stats.memory.percent }}],
+      borderColor: '#8b5cf6',
+      backgroundColor: 'rgba(139, 92, 246, 0.2)',
+      tension: 0.4,
+      fill: true
+    }]
+  };
+
+  const diskData = {
+    labels: ['-50s', '-40s', '-30s', '-20s', '-10s', 'Now'],
+    datasets: [{
+      label: 'Disk %',
+      data: [{{ stats.disk.percent }}, {{ stats.disk.percent }}, {{ stats.disk.percent }}, {{ stats.disk.percent }}, {{ stats.disk.percent }}, {{ stats.disk.percent }}],
+      borderColor: '#10b981',
+      backgroundColor: 'rgba(16, 185, 129, 0.2)',
+      tension: 0.4,
+      fill: true
+    }]
+  };
+
+  // CPU Chart
+  new Chart(document.getElementById('cpuChart'), {
+    type: 'line',
+    data: cpuData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, max: 100, ticks: { stepSize: 20 } }
+      }
+    }
+  });
+
+  // Memory Chart
+  new Chart(document.getElementById('memoryChart'), {
+    type: 'line',
+    data: memoryData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, max: 100, ticks: { stepSize: 20 } }
+      }
+    }
+  });
+
+  // Disk Chart
+  new Chart(document.getElementById('diskChart'), {
+    type: 'line',
+    data: diskData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, max: 100, ticks: { stepSize: 20 } }
+      }
+    }
+  });
 </script>
+
+</body>
+</html>
