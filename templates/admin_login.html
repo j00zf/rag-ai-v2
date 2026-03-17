@@ -3,53 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin Login • Secure Access</title>
+  <title>Admin Login</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            primary: {
-              600: '#2563eb',
-              700: '#1d4ed8',
-            },
-            surface: {
-              light: '#ffffff',
-              dark: '#0f172a',
-            }
-          },
-          borderRadius: {
-            '2.5xl': '1.375rem',
-          }
-        }
-      }
-    }
-  </script>
-
   <style>
     body {
-      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-    }
-    .dark body {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      background: linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%);
+      font-size: 0.95rem;
     }
 
     .card {
-      background: rgba(255, 255, 255, 0.75);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(226, 232, 240, 0.5);
-      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(229, 231, 235, 0.7);
+      border-radius: 1.25rem;
+      box-shadow: 0 10px 30px -8px rgba(0,0,0,0.08);
+      transition: transform 0.22s ease;
     }
 
-    .dark .card {
-      background: rgba(15, 23, 42, 0.65);
-      border-color: rgba(59, 69, 94, 0.5);
+    .card:hover {
+      transform: translateY(-2px);
     }
 
     .input-group {
@@ -57,73 +33,74 @@
     }
 
     .input-group input {
-      padding-top: 1.75rem;
-      padding-bottom: 0.5rem;
+      padding: 1.4rem 1.1rem 0.5rem;
+      font-size: 0.96rem;
     }
 
     .input-group label {
       position: absolute;
-      left: 1.5rem;
-      top: 1.125rem;
-      font-size: 1.125rem;
-      color: #94a3b8;
+      left: 1.1rem;
+      top: 1rem;
+      font-size: 0.96rem;
+      color: #6b7280;
       pointer-events: none;
-      transition: all 0.25s ease;
+      transition: all 0.24s ease;
     }
 
     .input-group input:focus + label,
     .input-group input:not(:placeholder-shown) + label {
-      top: 0.625rem;
-      font-size: 0.875rem;
+      top: 0.45rem;
+      font-size: 0.76rem;
       color: #3b82f6;
+      font-weight: 500;
     }
 
     .btn-primary {
       background: linear-gradient(to bottom right, #3b82f6, #2563eb);
-      box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
+      box-shadow: 0 6px 16px -4px rgba(59,130,246,0.35);
     }
 
     .btn-primary:hover {
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: 0 20px 35px -5px rgba(59, 130, 246, 0.5);
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px -6px rgba(59,130,246,0.45);
     }
 
     @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(25px); }
+      from { opacity: 0; transform: translateY(18px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
     .animate-fade-in-up {
-      animation: fadeInUp 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      animation: fadeInUp 0.6s ease-out forwards;
     }
   </style>
 </head>
 
-<body class="min-h-screen flex items-center justify-center p-6 font-sans antialiased">
+<body class="min-h-screen flex items-center justify-center p-5 font-sans antialiased">
 
-  <div class="card w-full max-w-lg p-10 md:p-12 rounded-3xl shadow-2xl animate-fade-in-up">
+  <div class="card w-full max-w-md p-7 sm:p-8 md:p-9 animate-fade-in-up">
 
     <!-- Header -->
-    <div class="text-center mb-10">
-      <div class="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-950 dark:to-slate-800 text-blue-600 dark:text-blue-400 rounded-2xl mb-6 shadow-inner">
-        <i data-lucide="shield-check" class="w-14 h-14"></i>
+    <div class="text-center mb-7">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-50 text-blue-600 rounded-xl mb-5 shadow-sm">
+        <i data-lucide="shield-check" class="w-9 h-9"></i>
       </div>
-      <h1 class="text-4xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">
-        Admin Portal
+      <h1 class="text-2xl font-bold text-slate-800 tracking-tight">
+        Admin Login
       </h1>
-      <p class="mt-3 text-lg text-slate-500 dark:text-slate-400">
-        Secure access to manage your system
+      <p class="mt-2 text-sm text-slate-500">
+        Secure access required
       </p>
     </div>
 
     <!-- Error message -->
     {% if error %}
-    <div class="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-6 py-4 rounded-2xl mb-8 text-center font-medium shadow-sm">
+    <div class="bg-red-50 border border-red-200 text-red-700 px-5 py-3 rounded-xl mb-6 text-sm text-center font-medium">
       {{ error }}
     </div>
     {% endif %}
 
-    <form method="POST" action="" class="space-y-8">
+    <form method="POST" action="" class="space-y-6">
 
       <!-- Username -->
       <div class="input-group">
@@ -134,11 +111,9 @@
           placeholder=" " 
           required 
           autofocus 
-          class="w-full px-5 pt-6 pb-2 bg-white/60 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-600 rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-900/30 outline-none transition-all text-lg text-slate-900 dark:text-slate-100 placeholder-transparent"
+          class="w-full bg-white/80 border border-slate-300 rounded-xl focus:border-blue-500 focus:ring-3 focus:ring-blue-100 outline-none transition-all text-slate-900 placeholder-transparent"
         />
-        <label for="username" class="text-slate-500 dark:text-slate-400 font-medium">
-          Username
-        </label>
+        <label for="username">Username</label>
       </div>
 
       <!-- Password -->
@@ -149,45 +124,36 @@
           name="password" 
           placeholder=" " 
           required 
-          class="w-full px-5 pt-6 pb-2 bg-white/60 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-600 rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-900/30 outline-none transition-all text-lg text-slate-900 dark:text-slate-100 placeholder-transparent"
+          class="w-full bg-white/80 border border-slate-300 rounded-xl focus:border-blue-500 focus:ring-3 focus:ring-blue-100 outline-none transition-all text-slate-900 placeholder-transparent"
         />
-        <label for="password" class="text-slate-500 dark:text-slate-400 font-medium">
-          Password
-        </label>
+        <label for="password">Password</label>
       </div>
 
       <!-- Submit -->
       <button 
         type="submit" 
-        class="btn-primary w-full py-4 text-white font-semibold text-lg rounded-2xl flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl active:scale-[0.98]"
+        class="btn-primary w-full py-3.5 text-white font-medium text-base rounded-xl flex items-center justify-center gap-2.5 transition-all active:scale-[0.98]"
       >
-        <i data-lucide="log-in" class="w-7 h-7"></i>
+        <i data-lucide="log-in" class="w-5 h-5"></i>
         Sign In
       </button>
 
     </form>
 
-    <!-- Footer links -->
-    <div class="text-center mt-10 text-slate-500 dark:text-slate-400">
-      <p class="text-base">
-        Don't have access? 
-        <a href="/admin/register" class="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium underline-offset-4 hover:underline transition-colors">
-          Register now
+    <!-- Footer link -->
+    <div class="text-center mt-6 text-sm text-slate-500">
+      <p>
+        Need access? 
+        <a href="/admin/register" class="text-blue-600 hover:text-blue-700 font-medium underline-offset-3 hover:underline">
+          Register
         </a>
       </p>
-          </div>
+    </div>
 
   </div>
 
   <script>
     lucide.createIcons();
-
-    // Optional: toggle dark mode (for demo)
-    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
   </script>
 
 </body>
