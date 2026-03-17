@@ -7,6 +7,8 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- SweetAlert2 for beautiful toasts & confirmations -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
     :root {
@@ -182,7 +184,7 @@
 
 <div class="flex min-h-screen">
 
-  <!-- Sidebar (same as before) -->
+  <!-- Sidebar -->
   <aside class="w-64 sidebar flex flex-col sticky top-0 h-screen z-20">
     <div class="p-5 text-xl font-semibold flex items-center gap-3 border-b border-[var(--border)] bg-white/70 backdrop-blur-sm">
       <i data-lucide="layout-dashboard" class="w-6 h-6 text-[var(--accent)]"></i>
@@ -326,9 +328,10 @@
                      class="btn-link mr-5">
                     View Chunks
                   </a>
-                  <form action="/admin/knowledge-base/delete/{{ doc.id }}" method="POST" style="display:inline;">
-                    <button type="submit" class="btn btn-danger"
-                            onclick="return confirm('Delete {{ doc.filename }} and all its chunks?\nThis cannot be undone.');">
+                  <form action="/admin/knowledge-base/delete/{{ doc.id }}" method="POST" 
+                        class="inline-block"
+                        onsubmit="handleDelete(event, this, '{{ doc.filename | e }}'); return false;">
+                    <button type="submit" class="btn btn-danger text-sm px-3 py-1.5">
                       Delete
                     </button>
                   </form>
@@ -353,6 +356,74 @@
 
 <script>
   lucide.createIcons();
+
+  function handleDelete(event, form, filename) {
+    event.preventDefault();
+
+    Swal.fire({
+      title: 'Confirm Deletion',
+      text: `Delete "${filename}" and all its chunks? This action cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, Delete',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+
+      // Show loading toast
+      Swal.fire({
+        title: 'Deleting...',
+        text: 'Please wait',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      const formData = new FormData(form);
+
+      fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        Swal.close();  // close loading
+
+        if (data.success) {
+          Swal.fire({
+            title: 'Success!',
+            text: data.message || 'Document deleted successfully.',
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false
+          }).then(() => {
+            // Auto reload page to update the table
+            window.location.reload();
+          });
+        } else {
+          Swal.fire({
+            title: 'Error',
+            text: data.message || 'Failed to delete document.',
+            icon: 'error'
+          });
+        }
+      })
+      .catch(err => {
+        Swal.close();
+        Swal.fire({
+          title: 'Network Error',
+          text: 'Could not connect to server: ' + err.message,
+          icon: 'error'
+        });
+      });
+    });
+  }
 </script>
 
 </body>

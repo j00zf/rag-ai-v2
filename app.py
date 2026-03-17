@@ -5,7 +5,7 @@ import requests
 import time
 import traceback
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask import Flask, render_template, request, jsonify, redirect, session
+from flask import Flask, render_template, request, jsonify, redirect, session, flash
 from dotenv import load_dotenv
 import mysql.connector
 
@@ -558,14 +558,21 @@ def view_document_chunks(doc_id):
 def delete_document(doc_id):
     try:
         db = get_db_connection()
+        if not db:
+            return jsonify({"success": False, "message": "Database unavailable"}), 503
+
         cursor = db.cursor(dictionary=True)
         cursor.execute("SELECT filename FROM documents WHERE id = %s", (doc_id,))
         doc = cursor.fetchone()
         if not doc:
-            return jsonify({"success": False, "message": "Not found"}), 404
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"success": False, "message": "Document not found"}), 404
+            flash("Document not found", "error")
+            return redirect("/admin/knowledge-base")
 
         file_path = os.path.join("pdfs", doc['filename'])
 
+        # Delete from Chroma
         vector_db, _ = get_vector_db()
         if vector_db:
             try:
@@ -575,6 +582,7 @@ def delete_document(doc_id):
             except Exception as e:
                 rag_logger.error(f"Chroma delete failed: {e}")
 
+        # Delete from MySQL
         cursor.execute("DELETE FROM document_chunks WHERE document_id = %s", (doc_id,))
         cursor.execute("DELETE FROM documents WHERE id = %s", (doc_id,))
         db.commit()
@@ -582,12 +590,24 @@ def delete_document(doc_id):
         if os.path.exists(file_path):
             os.remove(file_path)
 
-        return jsonify({"success": True})
+        message = f"Document '{doc['filename']}' deleted successfully"
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"success": True, "message": message})
+        else:
+            flash(message, "success")
+            return redirect("/admin/knowledge-base")
 
     except Exception as e:
-        app_logger.error(f"Delete doc {doc_id} error: {str(e)}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        app_logger.error(f"Delete doc {doc_id} error: {str(e)}", exc_info=True)
+        error_msg = f"Error deleting document: {str(e)}"
 
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"success": False, "message": error_msg}), 500
+        else:
+            flash(error_msg, "error")
+            return redirect("/admin/knowledge-base")
+        
 @app.route("/admin/ip-addresses")
 @admin_required
 def admin_ip_addresses():
