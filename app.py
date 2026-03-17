@@ -1,9 +1,11 @@
 import os
 import uuid
 import logging
+from gotrue import datetime
 import requests
 import time
 import traceback
+import psutil
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, render_template, request, jsonify, redirect, session, flash
 from dotenv import load_dotenv
@@ -732,6 +734,61 @@ def all_messages():
         selected_ip_info=selected_ip_info,
         selected_ip_id=selected_ip_id
     )
+
+@app.route("/admin/server-status")
+@admin_required
+def server_status():
+    # CPU usage (percentage over last second)
+    cpu_percent = psutil.cpu_percent(interval=1)
+
+    # RAM / Memory
+    mem = psutil.virtual_memory()
+    memory_total_gb = round(mem.total / (1024 ** 3), 2)
+    memory_used_gb = round(mem.used / (1024 ** 3), 2)
+    memory_free_gb = round(mem.free / (1024 ** 3), 2)
+    memory_percent = mem.percent
+
+    # Disk usage (root partition /)
+    disk = psutil.disk_usage('/')
+    disk_total_gb = round(disk.total / (1024 ** 3), 2)
+    disk_used_gb = round(disk.used / (1024 ** 3), 2)
+    disk_free_gb = round(disk.free / (1024 ** 3), 2)
+    disk_percent = disk.percent
+
+    # Load average (1, 5, 15 min)
+    load_avg = psutil.getloadavg()
+    load_1min, load_5min, load_15min = [round(x, 2) for x in load_avg]
+
+    # Uptime
+    uptime_seconds = time.time() - psutil.boot_time()
+    uptime_days = int(uptime_seconds // 86400)
+    uptime_hours = int((uptime_seconds % 86400) // 3600)
+    uptime_str = f"{uptime_days} days, {uptime_hours} hours"
+
+    stats = {
+        "cpu_percent": cpu_percent,
+        "memory": {
+            "total_gb": memory_total_gb,
+            "used_gb": memory_used_gb,
+            "free_gb": memory_free_gb,
+            "percent": memory_percent
+        },
+        "disk": {
+            "total_gb": disk_total_gb,
+            "used_gb": disk_used_gb,
+            "free_gb": disk_free_gb,
+            "percent": disk_percent
+        },
+        "load_average": {
+            "1min": load_1min,
+            "5min": load_5min,
+            "15min": load_15min
+        },
+        "uptime": uptime_str,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S IST")
+    }
+
+    return render_template("admin_server_status.html", stats=stats)
 
 @app.route("/admin/db")   # ← nicer, shorter URL: /admin/db
 @admin_required
