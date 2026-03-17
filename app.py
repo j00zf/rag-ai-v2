@@ -713,6 +713,15 @@ def all_messages():
         selected_ip_id=selected_ip_id
     )
 
+@app.route("/admin/db")   # ← nicer, shorter URL: /admin/db
+@admin_required
+def admin_db():
+    return app.send_static_file(
+        "db-admin-tool",                  # ← use the new filename
+        mimetype="text/html",             # ← force browser to treat it as HTML
+        conditional=True                  # ← optional: better caching
+    )
+
 # ────────────────────────────────────────────────
 # Error Handlers
 # ────────────────────────────────────────────────
