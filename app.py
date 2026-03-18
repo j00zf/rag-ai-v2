@@ -291,7 +291,8 @@ def get_ip_location(ip):
 # ────────────────────────────────────────────────
 @app.route("/")
 def home():
-    return render_template("chat.html")
+    is_logged_in = 'user_id' in session  # or however you check auth
+    return render_template('chat.html', is_logged_in=is_logged_in)
 
 @app.route("/chat", methods=["POST"])
 def chat():
