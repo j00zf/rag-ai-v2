@@ -154,14 +154,14 @@
     }
 
     #mapContainer {
-      height: 520px;
-      min-height: 400px;
+      height: 100%;
+      min-height: 480px;
       position: relative;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
       #mapContainer {
-        height: 380px;
+        min-height: 420px;
       }
     }
   </style>
@@ -179,62 +179,36 @@
     </div>
 
     <nav class="flex-1 p-4 space-y-1.5 text-sm">
-      <a href="/admin/dashboard"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/dashboard' %}sidebar-active{% endif %}">
-        <i data-lucide="home" class="w-5 h-5"></i>
-        Dashboard
+      <a href="/admin/dashboard" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/dashboard' %}sidebar-active{% endif %}">
+        <i data-lucide="home" class="w-5 h-5"></i> Dashboard
       </a>
-
-      <a href="/admin/knowledge-base"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/knowledge-base' %}sidebar-active{% endif %}">
-        <i data-lucide="database" class="w-5 h-5"></i>
-        Knowledge Base
+      <a href="/admin/knowledge-base" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/knowledge-base' %}sidebar-active{% endif %}">
+        <i data-lucide="database" class="w-5 h-5"></i> Knowledge Base
       </a>
-
-      <a href="/admin/ip-addresses"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/ip-addresses' %}sidebar-active{% endif %}">
-        <i data-lucide="globe" class="w-5 h-5"></i>
-        IP Addresses
+      <a href="/admin/ip-addresses" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/ip-addresses' %}sidebar-active{% endif %}">
+        <i data-lucide="globe" class="w-5 h-5"></i> IP Addresses
       </a>
-
-      <a href="/admin/manage-admins"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/manage-admins' %}sidebar-active{% endif %}">
-        <i data-lucide="users" class="w-5 h-5"></i>
-        Manage Admins
+      <a href="/admin/manage-admins" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/manage-admins' %}sidebar-active{% endif %}">
+        <i data-lucide="users" class="w-5 h-5"></i> Manage Admins
       </a>
-
       <div class="my-4 h-px bg-[var(--border)]"></div>
-
-      <a href="/"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/' %}sidebar-active{% endif %}">
-        <i data-lucide="book-open-check" class="w-5 h-5"></i>
-        Test App
+      <a href="/" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/' %}sidebar-active{% endif %}">
+        <i data-lucide="book-open-check" class="w-5 h-5"></i> Test App
       </a>
-
-      <a href="/admin/all-user-messages"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/all-user-messages' %}sidebar-active{% endif %}">
-        <i data-lucide="messages-square" class="w-5 h-5"></i>
-        All Messages
+      <a href="/admin/all-user-messages" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/all-user-messages' %}sidebar-active{% endif %}">
+        <i data-lucide="messages-square" class="w-5 h-5"></i> All Messages
       </a>
-
-      <a href="/admin/view-errors"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/view-errors' %}sidebar-active{% endif %}">
-        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
-        Errors
+      <a href="/admin/view-errors" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/view-errors' %}sidebar-active{% endif %}">
+        <i data-lucide="alert-triangle" class="w-5 h-5"></i> Errors
       </a>
-
-      <a href="/admin/server-status"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
-        <i data-lucide="server" class="w-5 h-5"></i>
-        Server Status
+      <a href="/admin/server-status" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="server" class="w-5 h-5"></i> Server Status
       </a>
     </nav>
 
     <div class="p-4 border-t border-[var(--border)] bg-white/70 backdrop-blur-sm">
-      <a href="/admin/logout"
-         class="flex items-center justify-center gap-2.5 w-full bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium py-2.5 rounded-lg transition-colors">
-        <i data-lucide="log-out" class="w-4.5 h-4.5"></i>
-        Logout
+      <a href="/admin/logout" class="flex items-center justify-center gap-2.5 w-full bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium py-2.5 rounded-lg transition-colors">
+        <i data-lucide="log-out" class="w-4.5 h-4.5"></i> Logout
       </a>
     </div>
   </aside>
@@ -249,118 +223,128 @@
       </h1>
     </header>
 
-    <main class="p-6 flex-1 max-w-7xl mx-auto">
+    <main class="p-6 flex-1 w-full">
 
-      <div class="mb-6">
-        <a href="/admin/knowledge-base" class="back-link flex items-center gap-2">
-          ← Back to Knowledge Base
-        </a>
-      </div>
+      <!-- Two-column layout -->
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
 
-      <div class="card overflow-hidden mb-10">
+        <!-- Left column: Table (3/5 width on lg+) -->
+        <div class="lg:col-span-3 flex flex-col">
 
-        <div class="px-6 py-4 border-b border-[var(--border)]">
-          <h2 class="text-xl font-semibold m-0">IP Activity Overview</h2>
-          <p class="text-[var(--text-mute)] mt-1 text-sm">
-            Showing all recorded IP addresses and their chat activity
-          </p>
-        </div>
+          <div class="card overflow-hidden flex-1 flex flex-col">
 
-        {% if ips %}
-
-        <!-- Search & Rows per page -->
-        <div class="p-6 border-b border-[var(--border)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div class="relative max-w-md w-full">
-            <input
-              type="text"
-              id="searchInput"
-              placeholder="Search IP, city or country..."
-              class="w-full pl-10 pr-4 py-2.5 bg-[var(--hover)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[var(--accent)] transition"
-            >
-            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-mute)] pointer-events-none"></i>
-          </div>
-
-          <div class="flex items-center gap-3 text-sm">
-            <label class="text-[var(--text-mute)] whitespace-nowrap">Show:</label>
-            <select id="rowsPerPage" class="bg-[var(--hover)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)]">
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="9999">All</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Table -->
-        <div class="overflow-x-auto">
-          <table id="ipTable" class="min-w-full text-sm">
-            <thead>
-              <tr>
-                <th data-sort="ip">IP Address <span class="sort-icon"></span></th>
-                <th data-sort="location">Location <span class="sort-icon"></span></th>
-                <th data-sort="messages" class="text-center">Messages <span class="sort-icon"></span></th>
-                <th data-sort="lastSeen">Last Seen <span class="sort-icon"></span></th>
-              </tr>
-            </thead>
-            <tbody id="tableBody">
-              {% for ip in ips %}
-              <tr class="hover:bg-gray-50/70 transition-colors">
-                <td class="font-medium font-mono text-sm">{{ ip.ip_address }}</td>
-                <td>
-                  {% if ip.city and ip.country %}
-                    {{ ip.city }}, {{ ip.country }}
-                  {% else %}
-                    <span class="text-[var(--text-mute)] italic">Unknown / Private IP</span>
-                  {% endif %}
-                </td>
-                <td class="font-semibold text-center">{{ ip.message_count|default:0 }}</td>
-                <td class="text-[var(--text-mute)]">{{ ip.last_seen|default:"Never" }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Pagination -->
-        <div class="px-6 py-4 border-t border-[var(--border)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-sm">
-          <div id="infoText" class="text-[var(--text-mute)]">
-            Showing 1–10 of {{ ips|length }} entries
-          </div>
-          <div class="flex items-center gap-2 flex-wrap" id="pagination"></div>
-        </div>
-
-        {% else %}
-        <div class="p-16 text-center text-[var(--text-mute)]">
-          <i data-lucide="globe" class="w-12 h-12 mx-auto mb-4 opacity-40"></i>
-          <p class="text-lg font-medium">No IP addresses recorded yet.</p>
-          <p class="mt-1">Activity will appear here once users start chatting.</p>
-        </div>
-        {% endif %}
-
-      </div>
-
-      <!-- Map Section -->
-      <div class="card overflow-hidden">
-        <div class="px-6 py-4 border-b border-[var(--border)]">
-          <h2 class="text-xl font-semibold m-0 flex items-center gap-3">
-            <i data-lucide="map-pin" class="w-6 h-6 text-[var(--accent)]"></i>
-            Geographic Distribution of Activity
-          </h2>
-          <p class="text-[var(--text-mute)] mt-1 text-sm">
-            Markers show approximate locations of active IPs (based on geolocation data)
-          </p>
-        </div>
-
-        <div id="mapContainer">
-          <div id="map" class="absolute inset-0"></div>
-          <div id="mapEmpty" class="absolute inset-0 flex items-center justify-center text-[var(--text-mute)] text-lg hidden">
-            <div class="text-center px-6">
-              <i data-lucide="globe" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
-              <p class="font-medium">No geolocation data available</p>
-              <p class="text-sm mt-2">IPs without valid latitude/longitude are not displayed on the map.</p>
+            <div class="px-6 py-4 border-b border-[var(--border)]">
+              <h2 class="text-xl font-semibold m-0">IP Activity Overview</h2>
+              <p class="text-[var(--text-mute)] mt-1 text-sm">
+                Showing all recorded IP addresses and their chat activity
+              </p>
             </div>
+
+            {% if ips %}
+
+            <!-- Controls -->
+            <div class="p-6 border-b border-[var(--border)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div class="relative max-w-md w-full">
+                <input
+                  type="text"
+                  id="searchInput"
+                  placeholder="Search IP, city or country..."
+                  class="w-full pl-10 pr-4 py-2.5 bg-[var(--hover)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[var(--accent)] transition"
+                >
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-mute)] pointer-events-none"></i>
+              </div>
+
+              <div class="flex items-center gap-3 text-sm">
+                <label class="text-[var(--text-mute)] whitespace-nowrap">Show:</label>
+                <select id="rowsPerPage" class="bg-[var(--hover)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)]">
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="9999">All</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto flex-1">
+              <table id="ipTable" class="min-w-full text-sm">
+                <thead>
+                  <tr>
+                    <th data-sort="ip">IP Address <span class="sort-icon"></span></th>
+                    <th data-sort="location">Location <span class="sort-icon"></span></th>
+                    <th data-sort="messages" class="text-center">Messages <span class="sort-icon"></span></th>
+                    <th data-sort="lastSeen">Last Seen <span class="sort-icon"></span></th>
+                  </tr>
+                </thead>
+                <tbody id="tableBody">
+                  {% for ip in ips %}
+                  <tr class="hover:bg-gray-50/70 transition-colors">
+                    <td class="font-medium font-mono text-sm">{{ ip.ip_address }}</td>
+                    <td>
+                      {% if ip.city and ip.country %}
+                        {{ ip.city }}, {{ ip.country }}
+                      {% else %}
+                        <span class="text-[var(--text-mute)] italic">Unknown / Private IP</span>
+                      {% endif %}
+                    </td>
+                    <td class="font-semibold text-center">{{ ip.message_count|default(0) }}</td>
+                    <td class="text-[var(--text-mute)]">{{ ip.last_seen|default("Never") }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="px-6 py-4 border-t border-[var(--border)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-sm">
+              <div id="infoText" class="text-[var(--text-mute)]">
+                Showing 1–10 of {{ ips|length }} entries
+              </div>
+              <div class="flex items-center gap-2 flex-wrap" id="pagination"></div>
+            </div>
+
+            {% else %}
+            <div class="p-16 text-center text-[var(--text-mute)] flex-1 flex flex-col items-center justify-center">
+              <i data-lucide="globe" class="w-12 h-12 mx-auto mb-4 opacity-40"></i>
+              <p class="text-lg font-medium">No IP addresses recorded yet.</p>
+              <p class="mt-1">Activity will appear here once users start chatting.</p>
+            </div>
+            {% endif %}
+
           </div>
+
         </div>
+
+        <!-- Right column: Map (2/5 width on lg+) -->
+        <div class="lg:col-span-2 flex flex-col gap-8">
+
+          <div class="card overflow-hidden flex-1 flex flex-col">
+
+            <div class="px-6 py-4 border-b border-[var(--border)]">
+              <h2 class="text-xl font-semibold m-0 flex items-center gap-3">
+                <i data-lucide="map-pin" class="w-6 h-6 text-[var(--accent)]"></i>
+                Geographic Distribution
+              </h2>
+              <p class="text-[var(--text-mute)] mt-1 text-sm">
+                Approximate locations of active IPs
+              </p>
+            </div>
+
+            <div id="mapContainer" class="flex-1">
+              <div id="map" class="absolute inset-0"></div>
+              <div id="mapEmpty" class="absolute inset-0 flex items-center justify-center text-[var(--text-mute)] text-lg hidden">
+                <div class="text-center px-6">
+                  <i data-lucide="globe" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
+                  <p class="font-medium">No geolocation data available</p>
+                  <p class="text-sm mt-2">IPs without valid coordinates are not shown.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
       </div>
 
     </main>
@@ -369,18 +353,16 @@
 
 </div>
 
-<!-- Pass map data from Django -->
+<!-- Map data from Django -->
 <script id="mapData" type="application/json">
   {{ map_data_json|safe }}
 </script>
 
 <script>
-// Lucide icons
+// Lucide
 lucide.createIcons();
 
-// ────────────────────────────────────────────────
-// Table features (search, sort, pagination)
-// ────────────────────────────────────────────────
+// Table logic (search, sort, pagination) - same as before
 const table = document.getElementById('ipTable');
 if (table) {
   const tbody = document.getElementById('tableBody');
@@ -396,21 +378,19 @@ if (table) {
   let sortDir = 1;
 
   function renderTable() {
-    let filtered = rows.filter(row => {
-      return row.textContent.toLowerCase().includes(searchInput.value.toLowerCase().trim());
-    });
+    let filtered = rows.filter(row => row.textContent.toLowerCase().includes(searchInput.value.toLowerCase().trim()));
 
     if (sortCol !== null) {
       filtered.sort((a, b) => {
         let aVal = a.children[sortCol].textContent.trim();
         let bVal = b.children[sortCol].textContent.trim();
 
-        if (sortCol === 2) { // messages
+        if (sortCol === 2) {
           aVal = parseInt(aVal) || 0;
           bVal = parseInt(bVal) || 0;
           return (aVal - bVal) * sortDir;
         }
-        if (sortCol === 3) { // last seen
+        if (sortCol === 3) {
           aVal = aVal === 'Never' ? '1900-01-01' : aVal;
           bVal = bVal === 'Never' ? '1900-01-01' : bVal;
         }
@@ -476,12 +456,8 @@ if (table) {
 
   document.querySelectorAll('th[data-sort]').forEach((th, idx) => {
     th.addEventListener('click', () => {
-      if (sortCol === idx) {
-        sortDir *= -1;
-      } else {
-        sortCol = idx;
-        sortDir = 1;
-      }
+      if (sortCol === idx) sortDir *= -1;
+      else { sortCol = idx; sortDir = 1; }
       document.querySelectorAll('th .sort-icon').forEach(el => el.textContent = '');
       th.querySelector('.sort-icon').textContent = sortDir === 1 ? '↑' : '↓';
       currentPage = 1;
@@ -492,14 +468,12 @@ if (table) {
   renderTable();
 }
 
-// ────────────────────────────────────────────────
 // Leaflet Map
-// ────────────────────────────────────────────────
-const mapDataRaw = document.getElementById('mapData')?.textContent || '[]';
-const mapData = JSON.parse(mapDataRaw);
+const mapData = JSON.parse(document.getElementById('mapData')?.textContent || '[]');
 
+let map;
 if (mapData.length > 0) {
-  const map = L.map('map').setView([20, 0], 2);
+  map = L.map('map').setView([20, 0], 2);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -531,9 +505,9 @@ if (mapData.length > 0) {
   document.getElementById('mapEmpty').classList.remove('hidden');
 }
 
-// Resize handler for Leaflet
+// Resize map when container changes
 const resizeObserver = new ResizeObserver(() => {
-  if (typeof map !== 'undefined') map.invalidateSize();
+  if (map) map.invalidateSize();
 });
 resizeObserver.observe(document.getElementById('mapContainer'));
 </script>
