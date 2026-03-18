@@ -8,6 +8,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5n/N0ZDvEg=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
   <style>
     :root {
       --bg:        #fdfdf9;
@@ -91,6 +97,12 @@
       letter-spacing: 0.04em;
       padding: 0.875rem 1.25rem;
       text-align: left;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    table th:hover {
+      background: #f1f5f9;
     }
 
     table td {
@@ -118,6 +130,40 @@
       color: #94a3b8;
       opacity: 0.9;
     }
+
+    .sort-icon {
+      display: inline-block;
+      width: 0.8em;
+      text-align: center;
+    }
+
+    .pagination-button {
+      @apply px-3 py-1.5 text-sm font-medium rounded-md border border-[var(--border)] transition-colors;
+    }
+
+    .pagination-button:hover:not(:disabled) {
+      @apply bg-[var(--hover)] border-[var(--accent)];
+    }
+
+    .pagination-button:disabled {
+      @apply opacity-50 cursor-not-allowed;
+    }
+
+    .pagination-active {
+      @apply bg-[var(--accent)] text-white border-[var(--accent)] hover:bg-[var(--accent-h)];
+    }
+
+    #mapContainer {
+      height: 520px;
+      min-height: 400px;
+      position: relative;
+    }
+
+    @media (max-width: 768px) {
+      #mapContainer {
+        height: 380px;
+      }
+    }
   </style>
 </head>
 
@@ -125,7 +171,13 @@
 
 <div class="flex min-h-screen">
 
-  <!-- Sidebar (same as other admin pages) -->
+  <!-- Sidebar -->
+  <aside class="w-64 sidebar flex flex-col sticky top-0 h-screen z-20 overflow-y-auto">
+    <div class="p-5 text-xl font-semibold flex items-center gap-3 border-b border-[var(--border)] bg-white/70 backdrop-blur-sm">
+      <i data-lucide="layout-dashboard" class="w-6 h-6 text-[var(--accent)]"></i>
+      Admin
+    </div>
+
     <nav class="flex-1 p-4 space-y-1.5 text-sm">
       <a href="/admin/dashboard"
          class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/dashboard' %}sidebar-active{% endif %}">
@@ -136,7 +188,7 @@
       <a href="/admin/knowledge-base"
          class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/knowledge-base' %}sidebar-active{% endif %}">
         <i data-lucide="database" class="w-5 h-5"></i>
-        Knowledge
+        Knowledge Base
       </a>
 
       <a href="/admin/ip-addresses"
@@ -170,11 +222,22 @@
         <i data-lucide="alert-triangle" class="w-5 h-5"></i>
         Errors
       </a>
-      <a href="/admin/server-status" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
-          <i data-lucide="server" class="w-5 h-5"></i> Server Status
-        </a>
+
+      <a href="/admin/server-status"
+         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="server" class="w-5 h-5"></i>
+        Server Status
+      </a>
     </nav>
 
+    <div class="p-4 border-t border-[var(--border)] bg-white/70 backdrop-blur-sm">
+      <a href="/admin/logout"
+         class="flex items-center justify-center gap-2.5 w-full bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium py-2.5 rounded-lg transition-colors">
+        <i data-lucide="log-out" class="w-4.5 h-4.5"></i>
+        Logout
+      </a>
+    </div>
+  </aside>
 
   <!-- Main Content -->
   <div class="flex-1 flex flex-col">
@@ -186,16 +249,15 @@
       </h1>
     </header>
 
-
     <main class="p-6 flex-1 max-w-7xl mx-auto">
 
       <div class="mb-6">
-        <a href="/admin/knowledge-base" class="back-link">
+        <a href="/admin/knowledge-base" class="back-link flex items-center gap-2">
           ← Back to Knowledge Base
         </a>
       </div>
 
-      <div class="card overflow-hidden">
+      <div class="card overflow-hidden mb-10">
 
         <div class="px-6 py-4 border-b border-[var(--border)]">
           <h2 class="text-xl font-semibold m-0">IP Activity Overview</h2>
@@ -205,17 +267,42 @@
         </div>
 
         {% if ips %}
+
+        <!-- Search & Rows per page -->
+        <div class="p-6 border-b border-[var(--border)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="relative max-w-md w-full">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search IP, city or country..."
+              class="w-full pl-10 pr-4 py-2.5 bg-[var(--hover)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[var(--accent)] transition"
+            >
+            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-mute)] pointer-events-none"></i>
+          </div>
+
+          <div class="flex items-center gap-3 text-sm">
+            <label class="text-[var(--text-mute)] whitespace-nowrap">Show:</label>
+            <select id="rowsPerPage" class="bg-[var(--hover)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)]">
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="9999">All</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Table -->
         <div class="overflow-x-auto">
-          <table class="min-w-full">
+          <table id="ipTable" class="min-w-full text-sm">
             <thead>
               <tr>
-                <th>IP Address</th>
-                <th>Location</th>
-                <th>Messages</th>
-                <th>Last Seen</th>
+                <th data-sort="ip">IP Address <span class="sort-icon"></span></th>
+                <th data-sort="location">Location <span class="sort-icon"></span></th>
+                <th data-sort="messages" class="text-center">Messages <span class="sort-icon"></span></th>
+                <th data-sort="lastSeen">Last Seen <span class="sort-icon"></span></th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="tableBody">
               {% for ip in ips %}
               <tr class="hover:bg-gray-50/70 transition-colors">
                 <td class="font-medium font-mono text-sm">{{ ip.ip_address }}</td>
@@ -226,21 +313,54 @@
                     <span class="text-[var(--text-mute)] italic">Unknown / Private IP</span>
                   {% endif %}
                 </td>
-                <td class="font-semibold text-center">{{ ip.message_count|default(0) }}</td>
-                <td class="text-[var(--text-mute)]">
-                  {{ ip.last_seen|default("Never") }}
-                </td>
+                <td class="font-semibold text-center">{{ ip.message_count|default:0 }}</td>
+                <td class="text-[var(--text-mute)]">{{ ip.last_seen|default:"Never" }}</td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination -->
+        <div class="px-6 py-4 border-t border-[var(--border)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-sm">
+          <div id="infoText" class="text-[var(--text-mute)]">
+            Showing 1–10 of {{ ips|length }} entries
+          </div>
+          <div class="flex items-center gap-2 flex-wrap" id="pagination"></div>
+        </div>
+
         {% else %}
-        <div class="p-12 text-center text-[var(--text-mute)]">
-          <p class="text-lg">No IP addresses recorded yet.</p>
+        <div class="p-16 text-center text-[var(--text-mute)]">
+          <i data-lucide="globe" class="w-12 h-12 mx-auto mb-4 opacity-40"></i>
+          <p class="text-lg font-medium">No IP addresses recorded yet.</p>
+          <p class="mt-1">Activity will appear here once users start chatting.</p>
         </div>
         {% endif %}
 
+      </div>
+
+      <!-- Map Section -->
+      <div class="card overflow-hidden">
+        <div class="px-6 py-4 border-b border-[var(--border)]">
+          <h2 class="text-xl font-semibold m-0 flex items-center gap-3">
+            <i data-lucide="map-pin" class="w-6 h-6 text-[var(--accent)]"></i>
+            Geographic Distribution of Activity
+          </h2>
+          <p class="text-[var(--text-mute)] mt-1 text-sm">
+            Markers show approximate locations of active IPs (based on geolocation data)
+          </p>
+        </div>
+
+        <div id="mapContainer">
+          <div id="map" class="absolute inset-0"></div>
+          <div id="mapEmpty" class="absolute inset-0 flex items-center justify-center text-[var(--text-mute)] text-lg hidden">
+            <div class="text-center px-6">
+              <i data-lucide="globe" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
+              <p class="font-medium">No geolocation data available</p>
+              <p class="text-sm mt-2">IPs without valid latitude/longitude are not displayed on the map.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
     </main>
@@ -249,8 +369,173 @@
 
 </div>
 
+<!-- Pass map data from Django -->
+<script id="mapData" type="application/json">
+  {{ map_data_json|safe }}
+</script>
+
 <script>
-  lucide.createIcons();
+// Lucide icons
+lucide.createIcons();
+
+// ────────────────────────────────────────────────
+// Table features (search, sort, pagination)
+// ────────────────────────────────────────────────
+const table = document.getElementById('ipTable');
+if (table) {
+  const tbody = document.getElementById('tableBody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  const searchInput = document.getElementById('searchInput');
+  const rowsSelect = document.getElementById('rowsPerPage');
+  const pagination = document.getElementById('pagination');
+  const infoText = document.getElementById('infoText');
+
+  let currentPage = 1;
+  let rowsPerPage = 10;
+  let sortCol = null;
+  let sortDir = 1;
+
+  function renderTable() {
+    let filtered = rows.filter(row => {
+      return row.textContent.toLowerCase().includes(searchInput.value.toLowerCase().trim());
+    });
+
+    if (sortCol !== null) {
+      filtered.sort((a, b) => {
+        let aVal = a.children[sortCol].textContent.trim();
+        let bVal = b.children[sortCol].textContent.trim();
+
+        if (sortCol === 2) { // messages
+          aVal = parseInt(aVal) || 0;
+          bVal = parseInt(bVal) || 0;
+          return (aVal - bVal) * sortDir;
+        }
+        if (sortCol === 3) { // last seen
+          aVal = aVal === 'Never' ? '1900-01-01' : aVal;
+          bVal = bVal === 'Never' ? '1900-01-01' : bVal;
+        }
+
+        return aVal.localeCompare(bVal, undefined, { numeric: true, sensitivity: 'base' }) * sortDir;
+      });
+    }
+
+    const total = filtered.length;
+    const pages = Math.ceil(total / rowsPerPage);
+    currentPage = Math.min(currentPage, pages || 1);
+
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    rows.forEach(r => r.style.display = 'none');
+    filtered.slice(start, end).forEach(r => r.style.display = '');
+
+    infoText.textContent = total === 0
+      ? 'No matching entries'
+      : `Showing ${start + 1}–${Math.min(end, total)} of ${total} entries`;
+
+    pagination.innerHTML = '';
+
+    if (pages <= 1) return;
+
+    const prev = document.createElement('button');
+    prev.textContent = 'Previous';
+    prev.className = 'pagination-button';
+    prev.disabled = currentPage === 1;
+    prev.onclick = () => { currentPage--; renderTable(); };
+    pagination.appendChild(prev);
+
+    for (let i = 1; i <= pages; i++) {
+      if (i === 1 || i === pages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.className = 'pagination-button ' + (i === currentPage ? 'pagination-active' : '');
+        btn.onclick = () => { currentPage = i; renderTable(); };
+        pagination.appendChild(btn);
+      } else if ((i === currentPage - 3 && currentPage > 4) || (i === currentPage + 3 && currentPage < pages - 3)) {
+        const dots = document.createElement('span');
+        dots.textContent = '...';
+        dots.className = 'px-3 py-1.5 text-sm text-[var(--text-mute)]';
+        pagination.appendChild(dots);
+      }
+    }
+
+    const next = document.createElement('button');
+    next.textContent = 'Next';
+    next.className = 'pagination-button';
+    next.disabled = currentPage === pages;
+    next.onclick = () => { currentPage++; renderTable(); };
+    pagination.appendChild(next);
+  }
+
+  searchInput.addEventListener('input', () => { currentPage = 1; renderTable(); });
+  rowsSelect.addEventListener('change', e => {
+    rowsPerPage = parseInt(e.target.value);
+    currentPage = 1;
+    renderTable();
+  });
+
+  document.querySelectorAll('th[data-sort]').forEach((th, idx) => {
+    th.addEventListener('click', () => {
+      if (sortCol === idx) {
+        sortDir *= -1;
+      } else {
+        sortCol = idx;
+        sortDir = 1;
+      }
+      document.querySelectorAll('th .sort-icon').forEach(el => el.textContent = '');
+      th.querySelector('.sort-icon').textContent = sortDir === 1 ? '↑' : '↓';
+      currentPage = 1;
+      renderTable();
+    });
+  });
+
+  renderTable();
+}
+
+// ────────────────────────────────────────────────
+// Leaflet Map
+// ────────────────────────────────────────────────
+const mapDataRaw = document.getElementById('mapData')?.textContent || '[]';
+const mapData = JSON.parse(mapDataRaw);
+
+if (mapData.length > 0) {
+  const map = L.map('map').setView([20, 0], 2);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 18,
+  }).addTo(map);
+
+  const markers = [];
+  mapData.forEach(item => {
+    if (item.lat && item.lng) {
+      const marker = L.marker([parseFloat(item.lat), parseFloat(item.lng)]).addTo(map);
+      marker.bindPopup(`
+        <div class="text-sm">
+          <strong>IP:</strong> ${item.ip}<br>
+          <strong>Location:</strong> ${item.city}, ${item.country}<br>
+          <strong>Messages:</strong> ${item.messages}<br>
+          <strong>Last Seen:</strong> ${item.last_seen}
+        </div>
+      `);
+      markers.push(marker);
+    }
+  });
+
+  if (markers.length > 0) {
+    const group = L.featureGroup(markers);
+    map.fitBounds(group.getBounds(), { padding: [60, 60] });
+  }
+} else {
+  document.getElementById('map').style.display = 'none';
+  document.getElementById('mapEmpty').classList.remove('hidden');
+}
+
+// Resize handler for Leaflet
+const resizeObserver = new ResizeObserver(() => {
+  if (typeof map !== 'undefined') map.invalidateSize();
+});
+resizeObserver.observe(document.getElementById('mapContainer'));
 </script>
 
 </body>
