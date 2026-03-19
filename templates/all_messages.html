@@ -39,18 +39,18 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow-sm);
-      transition: all 0.22s ease;
-      cursor: pointer;
+      transition: box-shadow 0.22s ease, transform 0.22s ease;
     }
 
     .card:hover {
       box-shadow: var(--shadow-md);
-      transform: translateY(-2px);
+      transform: translateY(-1px);
     }
 
     .card.active {
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.15);
+      box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.12);
+      transform: translateY(0);
     }
 
     .sidebar {
@@ -89,40 +89,56 @@
     }
 
     .message-bubble {
-      padding: 0.9rem 1.1rem;
-      border-radius: 0.75rem;
-      margin-bottom: 0.9rem;
-      max-width: 85%;
-      line-height: 1.45;
+      padding: 0.95rem 1.25rem;
+      border-radius: 1rem;
+      margin-bottom: 0.6rem;
+      max-width: 80%;
+      line-height: 1.48;
+      font-size: 0.94rem;
     }
 
     .user-bubble {
-      background: #dbeafe;
+      background: #e0f2fe;          /* softer blue than before */
       align-self: flex-start;
-      border-bottom-left-radius: 0.25rem;
+      border-bottom-left-radius: 0.375rem;
     }
 
     .bot-bubble {
-      background: #ecfdf5;
+      background: #ecfdf5;          /* soft mint/green */
       align-self: flex-end;
-      border-bottom-right-radius: 0.25rem;
+      border-bottom-right-radius: 0.375rem;
     }
 
     .timestamp {
       font-size: 0.78rem;
-      color: var(--text-mute);
-      margin-top: 0.3rem;
+      color: var(--text-light);
+      margin-top: 0.25rem;
+      letter-spacing: -0.01em;
     }
 
     .back-link, .clear-selection {
       color: var(--text-mute);
       text-decoration: none;
       font-weight: 500;
+      transition: color 0.15s ease;
     }
 
     .back-link:hover, .clear-selection:hover {
       color: var(--text-base);
-      text-decoration: underline;
+    }
+
+    .user-card .message-count {
+      background: var(--hover);
+      padding: 0.15rem 0.65rem;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 500;
+    }
+
+    h2, h3 {
+      color: #1e293b;
+      font-weight: 600;
+      letter-spacing: -0.015em;
     }
   </style>
 </head>
@@ -132,6 +148,13 @@
 <div class="flex min-h-screen">
 
   <!-- Sidebar -->
+  <aside class="w-64 sidebar flex flex-col sticky top-0 h-screen z-20">
+
+    <div class="p-5 text-xl font-semibold flex items-center gap-3 border-b border-[var(--border)] bg-white/70 backdrop-blur-sm">
+      <i data-lucide="layout-dashboard" class="w-6 h-6 text-[var(--accent)]"></i>
+      Admin
+    </div>
+
     <nav class="flex-1 p-4 space-y-1.5 text-sm">
       <a href="/admin/dashboard"
          class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/dashboard' %}sidebar-active{% endif %}">
@@ -142,7 +165,7 @@
       <a href="/admin/knowledge-base"
          class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/knowledge-base' %}sidebar-active{% endif %}">
         <i data-lucide="database" class="w-5 h-5"></i>
-        Knowledge
+        Knowledge Base
       </a>
 
       <a href="/admin/ip-addresses"
@@ -176,10 +199,23 @@
         <i data-lucide="alert-triangle" class="w-5 h-5"></i>
         Errors
       </a>
-      <a href="/admin/server-status" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
-          <i data-lucide="server" class="w-5 h-5"></i> Server Status
-        </a>
+
+      <a href="/admin/server-status"
+         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="server" class="w-5 h-5"></i>
+        Server Status
+      </a>
     </nav>
+
+    <div class="p-4 border-t border-[var(--border)] bg-white/70 backdrop-blur-sm">
+      <a href="/admin/logout"
+         class="flex items-center justify-center gap-2.5 w-full bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium py-2.5 rounded-lg transition-colors">
+        <i data-lucide="log-out" class="w-4.5 h-4.5"></i>
+        Logout
+      </a>
+    </div>
+
+  </aside>
 
   <!-- Main Content -->
   <div class="flex-1 flex flex-col">
@@ -191,58 +227,58 @@
       </h1>
     </header>
 
-    <main class="p-6 flex-1 max-w-7xl mx-auto">
+    <main class="p-6 flex-1 w-full">
 
-      <div class="mb-6 flex items-center justify-between">
-        <a href="/admin/dashboard" class="back-link">← Back to Dashboard</a>
-        {% if selected_ip_id %}
-          <a href="/admin/" class="clear-selection text-sm">× Clear selection</a>
-        {% endif %}
-      </div>
 
       <div class="grid lg:grid-cols-2 gap-6">
 
-        <!-- Left column: Unique Users / IPs -->
+        <!-- Left: User / IP list -->
         <div class="space-y-4">
-          <h2 class="text-lg font-semibold mb-3">Users / IPs ({{ unique_users|length }})</h2>
+          <h2 class="text-lg font-semibold mb-3 flex items-center gap-2">
+            Users / IPs ({{ unique_users|length }})
+          </h2>
 
           {% if unique_users %}
-            {% for user in unique_users %}
-            <a href="?ip_id={{ user.ip_id }}"
-               class="card p-5 block {% if selected_ip_id == user.ip_id %}active{% endif %}">
-              <div class="flex justify-between items-start">
-                <div>
-                  <div class="font-medium text-base">{{ user.ip_address }}</div>
-                  <div class="text-sm text-[var(--text-mute)] mt-0.5">
-                    {{ user.city|default("") }}{% if user.city and user.country %}, {% endif %}{{ user.country|default("—") }}
+            <div class="space-y-3 max-h-[80vh] overflow-y-auto pr-2">
+              {% for user in unique_users %}
+              <a href="?ip_id={{ user.ip_id }}"
+                 class="card p-5 block {% if selected_ip_id == user.ip_id %}active{% endif %}">
+                <div class="flex justify-between items-start gap-4">
+                  <div>
+                    <div class="font-medium">{{ user.ip_address }}</div>
+                    <div class="text-sm text-[var(--text-mute)] mt-0.5">
+                      {{ user.city|default("") }}{% if user.city and user.country %}, {% endif %}{{ user.country|default("—") }}
+                    </div>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <div class="user-card message-count">
+  {{ user.message_count }} message{{ 's' if user.message_count != 1 else '' }}
+</div>
+                    <div class="text-xs text-[var(--text-light)] mt-1.5">{{ user.last_message_at }}</div>
                   </div>
                 </div>
-                <div class="text-right">
-                  <div class="text-sm font-medium">{{ user.message_count }} msg{% if user.message_count != 1 %}s{% endif %}</div>
-                  <div class="text-xs text-[var(--text-mute)] mt-0.5">{{ user.last_message_at }}</div>
-                </div>
-              </div>
-            </a>
-            {% endfor %}
+              </a>
+              {% endfor %}
+            </div>
           {% else %}
-            <div class="card p-8 text-center text-[var(--text-mute)]">
+            <div class="card p-10 text-center text-[var(--text-mute)]">
               No users with messages found.
             </div>
           {% endif %}
         </div>
 
-        <!-- Right column: Selected user's conversation -->
+        <!-- Right: Conversation view -->
         <div>
           {% if selected_ip_info %}
             <div class="card p-6 sticky top-6">
               <h3 class="font-semibold text-lg mb-4">
                 Conversation with {{ selected_ip_info.ip_address }}
               </h3>
-              <div class="text-sm text-[var(--text-mute)] mb-5">
+              <div class="text-sm text-[var(--text-mute)] mb-6 leading-relaxed">
                 {{ selected_ip_info.city|default("") }}{% if selected_ip_info.city and selected_ip_info.country %}, {% endif %}{{ selected_ip_info.country|default("—") }}
               </div>
 
-              <div class="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+              <div class="space-y-5 max-h-[70vh] overflow-y-auto pr-3 pb-4">
                 {% for msg in selected_messages %}
                   <div class="flex flex-col {% if msg.user_message %}items-start{% else %}items-end{% endif %}">
                     {% if msg.user_message %}
@@ -263,8 +299,8 @@
               </div>
             </div>
           {% elif unique_users %}
-            <div class="card p-10 text-center text-[var(--text-mute)] h-64 flex items-center justify-center">
-              <p>Select a user/IP from the left to view their conversation history.</p>
+            <div class="card p-12 text-center text-[var(--text-mute)] min-h-[400px] flex items-center justify-center">
+              <p class="max-w-md">Select a user or IP from the left panel to view their full conversation history.</p>
             </div>
           {% endif %}
         </div>
@@ -272,6 +308,7 @@
       </div>
 
     </main>
+
   </div>
 
 </div>
