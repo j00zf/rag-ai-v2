@@ -131,71 +131,110 @@
 <div class="flex min-h-screen">
 
   <!-- Sidebar -->
-  <aside class="w-64 sidebar flex flex-col sticky top-0 h-screen z-20">
+<aside class="w-64 sidebar flex flex-col sticky top-0 h-screen z-20 ">
 
-    <div class="p-5 text-xl font-semibold flex items-center gap-3 border-b border-[var(--border)] bg-white/70 backdrop-blur-sm">
-      <i data-lucide="layout-dashboard" class="w-6 h-6 text-[var(--accent)]"></i>
-      Admin
-    </div>
+  <!-- Logo / Title -->
+  <div class="p-5 text-xl font-semibold flex items-center gap-3 border-b border-[var(--border)] bg-white/70 backdrop-blur-sm">
+    <i data-lucide="layout-dashboard" class="w-6 h-6 text-[var(--accent)]"></i>
+    Admin
+  </div>
 
-    <nav class="flex-1 p-4 space-y-1.5 text-sm">
-      <a href="/admin/dashboard"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/dashboard' %}sidebar-active{% endif %}">
-        <i data-lucide="home" class="w-5 h-5"></i>
+  <nav class="flex-1 p-4 space-y-6 text-sm overflow-y-auto">
+
+    <!-- DASHBOARD -->
+    <div>
+      <p class="text-xs font-semibold text-[var(--text-mute)] uppercase mb-2 px-2">
         Dashboard
-      </a>
+      </p>
 
-      <a href="/admin/knowledge-base"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/knowledge-base' %}sidebar-active{% endif %}">
-        <i data-lucide="database" class="w-5 h-5"></i>
-        Knowledge Base
-      </a>
-
-      <a href="/admin/ip-addresses"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/ip-addresses' %}sidebar-active{% endif %}">
-        <i data-lucide="globe" class="w-5 h-5"></i>
-        IP Addresses
-      </a>
-
-      <a href="/admin/manage-admins"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/manage-admins' %}sidebar-active{% endif %}">
-        <i data-lucide="users" class="w-5 h-5"></i>
-        Manage Admins
-      </a>
-
-      <div class="my-4 h-px bg-[var(--border)]"></div>
-
-      <a href="/"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/' %}sidebar-active{% endif %}">
-        <i data-lucide="book-open-check" class="w-5 h-5"></i>
-        Test App
-      </a>
-
-      <a href="/admin/all-user-messages"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/all-user-messages' %}sidebar-active{% endif %}">
-        <i data-lucide="messages-square" class="w-5 h-5"></i>
-        All Messages
-      </a>
-
-      <a href="/admin/view-errors"
-         class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition {% if request.path == '/admin/view-errors' %}sidebar-active{% endif %}">
-        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
-        Errors
-      </a>
-      <a href="/admin/server-status" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
-          <i data-lucide="server" class="w-5 h-5"></i> Server Status
+      <div class="space-y-1">
+        <a href="/admin/dashboard"
+           class="sidebar-link flex items-center gap-3 px-4 py-[11px] {% if request.path == '/admin/dashboard' %}sidebar-active{% endif %}">
+          <i data-lucide="home" class="w-5 h-5"></i>
+          Overview
         </a>
-    </nav>
-
-    <div class="p-4 border-t border-[var(--border)] bg-white/70 backdrop-blur-sm">
-      <a href="/admin/logout"
-         class="flex items-center justify-center gap-2.5 w-full bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium py-2.5 rounded-lg transition-colors">
-        <i data-lucide="log-out" class="w-4.5 h-4.5"></i>
-        Logout
-      </a>
+      </div>
     </div>
 
-  </aside>
+    <!-- MANAGEMENT -->
+    <div>
+      <p class="text-xs font-semibold text-[var(--text-mute)] uppercase mb-2 px-2">
+        Management
+      </p>
+
+      <div class="space-y-1">
+        <a href="/admin/knowledge-base"
+           class="sidebar-link flex items-center gap-3 px-4 py-[11px] {% if request.path == '/admin/knowledge-base' %}sidebar-active{% endif %}">
+          <i data-lucide="database" class="w-5 h-5"></i>
+          Knowledge Base
+        </a>
+
+        
+        <a href="/admin/generate-faq"
+           class="sidebar-link flex items-center gap-3 px-4 py-[11px] {% if request.path == '/admin/generate-faq' %}sidebar-active{% endif %}">
+          <i data-lucide="circle-question-mark" class="w-5 h-5"></i>
+          Generate FAQ
+        </a>
+
+        <a href="/admin/manage-admins"
+           class="sidebar-link flex items-center gap-3 px-4 py-[11px] {% if request.path == '/admin/manage-admins' %}sidebar-active{% endif %}">
+          <i data-lucide="users" class="w-5 h-5"></i>
+          Manage Admins
+        </a>
+
+        <a href="/admin/all-user-messages"
+           class="sidebar-link flex items-center gap-3 px-4 py-[11px] {% if request.path == '/admin/all-user-messages' %}sidebar-active{% endif %}">
+          <i data-lucide="messages-square" class="w-5 h-5"></i>
+          Messages
+        </a>
+      </div>
+    </div>
+
+    <!-- SYSTEM -->
+    <div>
+      <p class="text-xs font-semibold text-[var(--text-mute)] uppercase mb-2 px-2">
+        System
+      </p>
+
+      <div class="space-y-1">
+        <a href="/admin/server-status"
+           class="sidebar-link flex items-center gap-3 px-4 py-[11px] {% if request.path == '/admin/server-status' %}sidebar-active{% endif %}">
+          <i data-lucide="server" class="w-5 h-5"></i>
+          Server Status
+        </a>
+
+        <a href="/admin/view-errors"
+           class="sidebar-link flex items-center gap-3 px-4 py-[11px] {% if request.path == '/admin/view-errors' %}sidebar-active{% endif %}">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+          Errors
+        </a>
+
+        <a href="/admin/ip-addresses"
+           class="sidebar-link flex items-center gap-3 px-4 py-[11px] {% if request.path == '/admin/ip-addresses' %}sidebar-active{% endif %}">
+          <i data-lucide="globe" class="w-5 h-5"></i>
+          IP Addresses
+        </a>
+
+        <a href="/"
+           class="sidebar-link flex items-center gap-3 px-4 py-[11px] {% if request.path == '/' %}sidebar-active{% endif %}">
+          <i data-lucide="book-open-check" class="w-5 h-5"></i>
+          Test App
+        </a>
+      </div>
+    </div>
+
+  </nav>
+
+  <!-- Logout -->
+  <div class="p-4 border-t border-[var(--border)] bg-white/70 backdrop-blur-sm">
+    <a href="/admin/logout"
+       class="flex items-center justify-center gap-2.5 w-full bg-red-50 hover:bg-red-100 text-red-700 font-medium py-2.5 rounded-lg transition-colors">
+      <i data-lucide="log-out" class="w-4.5 h-4.5"></i>
+      Logout
+    </a>
+  </div>
+
+</aside>
 
 
   <!-- Main Content -->
@@ -216,30 +255,124 @@
         {{ error }}
       </div>
       {% else %}
+<!-- Stats -->
+<!-- Stats -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 
-      <!-- Stats -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        <div class="card p-6">
-          <div class="flex items-center justify-between gap-4">
-            <div>
-              <p class="text-xs font-medium text-[var(--text-mute)] tracking-wide uppercase mb-1">Total Documents</p>
-              <p class="stat-number">{{ stats.total_documents }}</p>
-            </div>
-            <i data-lucide="file-text" class="w-9 h-9 icon-muted"></i>
-          </div>
-        </div>
+  <!-- Total Documents -->
+  <div class="card p-5">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-[11px] font-medium text-[var(--text-mute)] uppercase tracking-wide mb-1">
+          Total Documents
+        </p>
+        <p class="text-2xl font-semibold text-gray-800">
+          {{ stats.total_documents }}
+        </p>
+      </div>
+      <i data-lucide="file-text" class="w-7 h-7 icon-muted"></i>
+    </div>
+  </div>
 
-        <div class="card p-6">
-          <div class="flex items-center justify-between gap-4">
-            <div>
-              <p class="text-xs font-medium text-[var(--text-mute)] tracking-wide uppercase mb-1">Chat Messages</p>
-              <p class="stat-number">{{ stats.total_messages }}</p>
-            </div>
-            <i data-lucide="message-circle" class="w-9 h-9 icon-muted"></i>
-          </div>
+  <!-- Chat Messages -->
+  <div class="card p-5">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-[11px] font-medium text-[var(--text-mute)] uppercase tracking-wide mb-1">
+          Chat Messages
+        </p>
+        <p class="text-2xl font-semibold text-gray-800">
+          {{ stats.total_messages }}
+        </p>
+      </div>
+      <i data-lucide="message-circle" class="w-7 h-7 icon-muted"></i>
+    </div>
+  </div>
+    <!-- Chat Messages -->
+  <div class="card p-5">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-[11px] font-medium text-[var(--text-mute)] uppercase tracking-wide mb-1">
+          Total Users
+        </p>
+        <p class="text-2xl font-semibold text-gray-800">
+          {{ stats.total_users }}
+        </p>
+      </div>
+      <i data-lucide="users" class="w-7 h-7 icon-muted"></i>
+    </div>
+  </div>
+
+  <!-- CPU Usage -->
+  <div class="card p-5">
+    <div class="flex items-center justify-between mb-2">
+      <div>
+        <p class="text-[11px] font-medium text-[var(--text-mute)] uppercase tracking-wide mb-1">
+          CPU Usage
+        </p>
+        <p class="text-xl font-semibold text-blue-700">
+          {{ stats.cpu_percent }}%
+        </p>
+      </div>
+      <i data-lucide="cpu" class="w-7 h-7 icon-muted"></i>
+    </div>
+
+    <div class="h-24">
+      <canvas id="cpuChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Memory Usage -->
+  <div class="card p-5">
+    <div class="flex items-center justify-between mb-2">
+      <div>
+        <p class="text-[11px] font-medium text-[var(--text-mute)] uppercase tracking-wide mb-1">
+          Memory Usage
+        </p>
+        <p class="text-sm font-semibold text-indigo-700">
+          {{ stats.memory_percent }} % 
+        </p>
+      </div>
+      <i data-lucide="memory-stick" class="w-7 h-7 icon-muted"></i>
+    </div>
+
+    <div class="h-24">
+      <canvas id="memoryChart"></canvas>
+    </div>
+  </div>
+
+</div>
+
+      <!-- Top Users -->
+      <h2 class="text-lg font-semibold mb-4 flex items-center gap-2.5 text-gray-800">
+        <i data-lucide="users" class="w-5 h-5 text-[var(--accent)]"></i>
+        Most Active Users
+      </h2>
+
+      <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="text-left">IP Address</th>
+                <th class="text-left">Location</th>
+                <th class="text-left">Messages</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {% for ip in top_ips %}
+              <tr class="hover:bg-gray-50/70 transition-colors">
+                <td class="font-medium text-gray-800">{{ ip.ip_address }}</td>
+                <td class="text-gray-600">
+                  {{ ip.city|default("-", true) }}, {{ ip.country|default("-", true) }}
+                </td>
+                <td class="font-semibold text-gray-700">{{ ip.message_count }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
-
 
       <!-- Recent Chats -->
       <h2 class="text-lg font-semibold mb-4 flex items-center gap-2.5 text-gray-800">
@@ -278,37 +411,6 @@
       </div>
 
 
-      <!-- Top Users -->
-      <h2 class="text-lg font-semibold mb-4 flex items-center gap-2.5 text-gray-800">
-        <i data-lucide="users" class="w-5 h-5 text-[var(--accent)]"></i>
-        Most Active Users
-      </h2>
-
-      <div class="card overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-sm">
-            <thead>
-              <tr>
-                <th class="text-left">IP Address</th>
-                <th class="text-left">Location</th>
-                <th class="text-left">Messages</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              {% for ip in top_ips %}
-              <tr class="hover:bg-gray-50/70 transition-colors">
-                <td class="font-medium text-gray-800">{{ ip.ip_address }}</td>
-                <td class="text-gray-600">
-                  {{ ip.city|default("-", true) }}, {{ ip.country|default("-", true) }}
-                </td>
-                <td class="font-semibold text-gray-700">{{ ip.message_count }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
       {% endif %}
 
     </main>
@@ -320,6 +422,64 @@
 <script>
   lucide.createIcons();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<script>
+  lucide.createIcons();
+
+  function createMiniChart(id, value, color) {
+    const ctx = document.getElementById(id).getContext('2d');
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['-50s','-40s','-30s','-20s','-10s','Now'],
+        datasets: [{
+          data: Array(6).fill(value),
+          borderColor: color,
+          backgroundColor: color + '22',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(30,41,59,0.9)',
+            padding: 8,
+            cornerRadius: 6
+          }
+        },
+        scales: {
+          x: { display: false },
+          y: {
+            display: false,
+            beginAtZero: true,
+            max: 100
+          }
+        }
+      }
+    });
+  }
+
+  // CPU %
+  createMiniChart(
+    "cpuChart",
+    {{ stats.cpu_percent|default(0) }},
+    "#3b82f6"
+  );
+
+  // Memory %
+  createMiniChart(
+    "memoryChart",
+    {{ (stats.memory_used_gb / stats.memory_total_gb * 100) | round(0) }},
+    "#6366f1"
+  );
+</script>
 </body>
 </html>

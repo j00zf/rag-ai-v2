@@ -453,18 +453,55 @@ def admin_logout():
 
 @app.route("/admin/dashboard")
 @admin_required
+
 def admin_dashboard():
+    # CPU usage (percentage over last second)
+    cpu_percent = psutil.cpu_percent(interval=1)
+
+    # RAM / Memory
+    mem = psutil.virtual_memory()
+    memory_total_gb = round(mem.total / (1024 ** 3), 2)
+    memory_used_gb = round(mem.used / (1024 ** 3), 2)
+    memory_free_gb = round(mem.free / (1024 ** 3), 2)
+    memory_percent = mem.percent
+
+    # Disk usage (root partition /)
+    disk = psutil.disk_usage('/')
+    disk_total_gb = round(disk.total / (1024 ** 3), 2)
+    disk_used_gb = round(disk.used / (1024 ** 3), 2)
+    disk_free_gb = round(disk.free / (1024 ** 3), 2)
+    disk_percent = disk.percent
+
+    # Load average (1, 5, 15 min)
+    load_avg = psutil.getloadavg()
+    load_1min, load_5min, load_15min = [round(x, 2) for x in load_avg]
+
+    # Uptime
+    uptime_seconds = time.time() - psutil.boot_time()
+    uptime_days = int(uptime_seconds // 86400)
+    uptime_hours = int((uptime_seconds % 86400) // 3600)
+    uptime_str = f"{uptime_days} days, {uptime_hours} hours"
+
+   
+
     db = get_db_connection()
     if not db:
         return render_template("admin_dashboard.html", error="Database unavailable")
 
     cursor = db.cursor(dictionary=True)
 
-    stats = {}
+    stats = {
+        "cpu_percent": cpu_percent,
+        
+        "memory_percent": memory_percent,
+        
+    }
     cursor.execute("SELECT COUNT(*) as c FROM documents")
     stats['total_documents'] = cursor.fetchone()['c']
     cursor.execute("SELECT COUNT(*) as c FROM chat_logs")
     stats['total_messages'] = cursor.fetchone()['c']
+    cursor.execute("SELECT COUNT(DISTINCT ip_id) as c FROM chat_logs")
+    stats['total_users'] = cursor.fetchone()['c']
 
     cursor.execute("""
         SELECT chat_logs.id, chat_logs.created_at, ip_addresses.ip_address,
