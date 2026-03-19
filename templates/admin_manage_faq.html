@@ -1,0 +1,103 @@
+
+<div class="container-fluid">
+  <h2 class="mb-4">Manage FAQs</h2>
+
+  {% if message %}
+  <div class="alert alert-{{ message_type }} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  {% endif %}
+
+  <!-- Add new FAQ -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Add New FAQ</h5>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        <input type="hidden" name="action" value="add">
+        <div class="mb-3">
+          <label for="question" class="form-label">Question <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="question" name="question" required>
+        </div>
+        <div class="mb-3">
+          <label for="answer" class="form-label">Answer <span class="text-danger">*</span></label>
+          <textarea class="form-control" id="answer" name="answer" rows="4" required></textarea>
+        </div>
+        <div class="mb-3">
+          <label for="category" class="form-label">Category (optional)</label>
+          <input type="text" class="form-control" id="category" name="category" placeholder="e.g. Admissions, Fees, Hostel">
+        </div>
+        <button type="submit" class="btn btn-success">Add FAQ</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- FAQ List -->
+  <div class="card">
+    <div class="card-header bg-info text-white">
+      <h5 class="mb-0">All FAQs ({{ faqs|length }})</h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-bordered mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Question</th>
+              <th>Answer</th>
+              <th>Category</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if faqs %}
+              {% for faq in faqs %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ faq.question }}</td>
+                <td>{{ faq.answer | truncate(120) }}</td>
+                <td>{{ faq.category or '-' }}</td>
+                <td>
+                  <span class="badge bg-{{ 'success' if faq.status == 'active' else 'secondary' }}">
+                    {{ faq.status | capitalize }}
+                  </span>
+                </td>
+                <td>
+                  <!-- Toggle -->
+                  <form method="post" class="d-inline">
+                    <input type="hidden" name="action" value="toggle">
+                    <input type="hidden" name="faq_id" value="{{ faq.id }}">
+                    <button type="submit" class="btn btn-sm btn-warning" title="Toggle status">
+                      {{ 'Deactivate' if faq.status == 'active' else 'Activate' }}
+                    </button>
+                  </form>
+
+                  <!-- Delete -->
+                  <form method="post" class="d-inline ms-1">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="faq_id" value="{{ faq.id }}">
+                    <button type="submit" class="btn btn-sm btn-danger" 
+                            onclick="return confirm('Really delete this FAQ?');"
+                            title="Delete FAQ">
+                      Delete
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                  No FAQs yet. Add one above.
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

@@ -170,10 +170,10 @@
         </a>
 
         
-        <a href="/admin/generate-faq"
-           class="sidebar-link flex items-center gap-3 px-4 py-[11px] {% if request.path == '/admin/generate-faq' %}sidebar-active{% endif %}">
+        <a href="/admin/manage-faq"
+           class="sidebar-link flex items-center gap-3 px-4 py-[11px] {% if request.path == '/admin/manage-faq' %}sidebar-active{% endif %}">
           <i data-lucide="circle-question-mark" class="w-5 h-5"></i>
-          Generate FAQ
+          Manage FAQs
         </a>
 
         <a href="/admin/manage-admins"
@@ -248,172 +248,145 @@
     </header>
 
 
-    <main class="p-6 flex-1">
+<main class="p-6 flex-1">
 
-      {% if error %}
-      <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-[var(--radius)] mb-6 text-sm">
-        {{ error }}
-      </div>
-      {% else %}
-<!-- Stats -->
-<!-- Stats -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+{% if error %}
+<div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-[var(--radius)] mb-6 text-sm">
+  {{ error }}
+</div>
+{% else %}
 
-  <!-- Total Documents -->
+<!-- 🔹 TOP STATS -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
   <div class="card p-5">
-    <div class="flex items-center justify-between">
-      <div>
-        <p class="text-[11px] font-medium text-[var(--text-mute)] uppercase tracking-wide mb-1">
-          Total Documents
-        </p>
-        <p class="text-2xl font-semibold text-gray-800">
-          {{ stats.total_documents }}
-        </p>
-      </div>
-      <i data-lucide="file-text" class="w-7 h-7 icon-muted"></i>
-    </div>
+    <p class="text-xs text-[var(--text-mute)] uppercase mb-1">Total Documents</p>
+    <p class="text-2xl font-semibold">{{ stats.total_documents }}</p>
   </div>
 
-  <!-- Chat Messages -->
   <div class="card p-5">
-    <div class="flex items-center justify-between">
-      <div>
-        <p class="text-[11px] font-medium text-[var(--text-mute)] uppercase tracking-wide mb-1">
-          Chat Messages
-        </p>
-        <p class="text-2xl font-semibold text-gray-800">
-          {{ stats.total_messages }}
-        </p>
-      </div>
-      <i data-lucide="message-circle" class="w-7 h-7 icon-muted"></i>
-    </div>
-  </div>
-    <!-- Chat Messages -->
-  <div class="card p-5">
-    <div class="flex items-center justify-between">
-      <div>
-        <p class="text-[11px] font-medium text-[var(--text-mute)] uppercase tracking-wide mb-1">
-          Total Users
-        </p>
-        <p class="text-2xl font-semibold text-gray-800">
-          {{ stats.total_users }}
-        </p>
-      </div>
-      <i data-lucide="users" class="w-7 h-7 icon-muted"></i>
-    </div>
+    <p class="text-xs text-[var(--text-mute)] uppercase mb-1">Chat Messages</p>
+    <p class="text-2xl font-semibold">{{ stats.total_messages }}</p>
   </div>
 
-  <!-- CPU Usage -->
   <div class="card p-5">
-    <div class="flex items-center justify-between mb-2">
-      <div>
-        <p class="text-[11px] font-medium text-[var(--text-mute)] uppercase tracking-wide mb-1">
-          CPU Usage
-        </p>
-        <p class="text-xl font-semibold text-blue-700">
-          {{ stats.cpu_percent }}%
-        </p>
-      </div>
-      <i data-lucide="cpu" class="w-7 h-7 icon-muted"></i>
-    </div>
-
-    <div class="h-24">
-      <canvas id="cpuChart"></canvas>
-    </div>
+    <p class="text-xs text-[var(--text-mute)] uppercase mb-1">Total Users</p>
+    <p class="text-2xl font-semibold">{{ stats.total_users }}</p>
   </div>
 
-  <!-- Memory Usage -->
   <div class="card p-5">
-    <div class="flex items-center justify-between mb-2">
-      <div>
-        <p class="text-[11px] font-medium text-[var(--text-mute)] uppercase tracking-wide mb-1">
-          Memory Usage
-        </p>
-        <p class="text-sm font-semibold text-indigo-700">
-          {{ stats.memory_percent }} % 
-        </p>
-      </div>
-      <i data-lucide="memory-stick" class="w-7 h-7 icon-muted"></i>
-    </div>
-
-    <div class="h-24">
-      <canvas id="memoryChart"></canvas>
-    </div>
+    <p class="text-xs text-[var(--text-mute)] uppercase mb-1">System Status</p>
+    <p class="text-sm text-green-600 font-semibold">Running</p>
   </div>
 
 </div>
 
-      <!-- Top Users -->
-      <h2 class="text-lg font-semibold mb-4 flex items-center gap-2.5 text-gray-800">
-        <i data-lucide="users" class="w-5 h-5 text-[var(--accent)]"></i>
-        Most Active Users
-      </h2>
 
-      <div class="card overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-sm">
-            <thead>
-              <tr>
-                <th class="text-left">IP Address</th>
-                <th class="text-left">Location</th>
-                <th class="text-left">Messages</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              {% for ip in top_ips %}
-              <tr class="hover:bg-gray-50/70 transition-colors">
-                <td class="font-medium text-gray-800">{{ ip.ip_address }}</td>
-                <td class="text-gray-600">
-                  {{ ip.city|default("-", true) }}, {{ ip.country|default("-", true) }}
-                </td>
-                <td class="font-semibold text-gray-700">{{ ip.message_count }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+<!-- 🔹 MIDDLE SECTION -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+
+  <!-- Most Active Users -->
+  <div class="lg:col-span-2 card overflow-hidden">
+    <div class="p-4 border-b font-semibold flex items-center gap-2">
+      <i data-lucide="users" class="w-5 h-5"></i>
+      Most Active Users
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr>
+            <th class="text-left">IP</th>
+            <th class="text-left">Location</th>
+            <th class="text-left">Messages</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          {% for ip in top_ips %}
+          <tr>
+            <td>{{ ip.ip_address }}</td>
+            <td>{{ ip.city|default("-") }}, {{ ip.country|default("-") }}</td>
+            <td class="font-semibold">{{ ip.message_count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Right Side (CPU + Memory) -->
+  <div class="flex flex-col gap-6">
+
+    <!-- CPU -->
+    <div class="card p-4">
+      <div class="flex justify-between mb-2">
+        <p class="text-xs uppercase text-[var(--text-mute)]">CPU Usage</p>
+        <p class="font-semibold text-blue-600">{{ stats.cpu_percent }}%</p>
       </div>
-
-      <!-- Recent Chats -->
-      <h2 class="text-lg font-semibold mb-4 flex items-center gap-2.5 text-gray-800">
-        <i data-lucide="messages-square" class="w-5 h-5 text-[var(--accent)]"></i>
-        Recent Conversations
-      </h2>
-
-      <div class="card overflow-hidden mb-10">
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-sm">
-            <thead>
-              <tr>
-                <th class="text-left">Time</th>
-                <th class="text-left">User / Location</th>
-                <th class="text-left">Message</th>
-                <th class="text-left">Reply</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              {% for chat in recent_chats %}
-              <tr class="hover:bg-gray-50/70 transition-colors">
-                <td class="whitespace-nowrap text-gray-600">{{ chat.created_at }}</td>
-                <td>
-                  <div class="font-medium text-gray-800">{{ chat.ip_address }}</div>
-                  <div class="text-xs text-gray-500">
-                    {{ chat.city|default("-", true) }}, {{ chat.country|default("-", true) }}
-                  </div>
-                </td>
-                <td class="max-w-md truncate text-gray-700">{{ chat.user_message }}</td>
-                <td class="max-w-md truncate text-gray-600">{{ chat.bot_response }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+      <div class="h-24">
+        <canvas id="cpuChart"></canvas>
       </div>
+    </div>
+
+    <!-- Memory -->
+    <div class="card p-4">
+      <div class="flex justify-between mb-2">
+        <p class="text-xs uppercase text-[var(--text-mute)]">Memory Usage</p>
+        <p class="font-semibold text-indigo-600">{{ stats.memory_percent }}%</p>
+      </div>
+      <div class="h-24">
+        <canvas id="memoryChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+</div>
 
 
-      {% endif %}
+<!-- 🔹 RECENT CONVERSATIONS (FULL WIDTH) -->
+<div class="card overflow-hidden">
 
-    </main>
+  <div class="p-4 border-b font-semibold flex items-center gap-2">
+    <i data-lucide="messages-square" class="w-5 h-5"></i>
+    Recent Conversations
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>User</th>
+          <th>Message</th>
+          <th>Reply</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y">
+        {% for chat in recent_chats %}
+        <tr>
+          <td>{{ chat.created_at }}</td>
+          <td>
+            <div>{{ chat.ip_address }}</div>
+            <div class="text-xs text-gray-500">
+              {{ chat.city|default("-") }}, {{ chat.country|default("-") }}
+            </div>
+          </td>
+          <td class="max-w-sm truncate">{{ chat.user_message }}</td>
+          <td class="max-w-sm truncate">{{ chat.bot_response }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+
+    </table>
+  </div>
+
+</div>
+
+{% endif %}
+
+</main>
 
   </div>
 
@@ -477,7 +450,7 @@
   // Memory %
   createMiniChart(
     "memoryChart",
-    {{ (stats.memory_used_gb / stats.memory_total_gb * 100) | round(0) }},
+     {{ stats.memory_percent|default(0) }},
     "#6366f1"
   );
 </script>

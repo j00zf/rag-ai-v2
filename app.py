@@ -123,6 +123,139 @@ def get_vector_db():
         rag_logger.critical(msg)
         app_logger.critical(msg)
         return None, None
+    
+
+# ────────────────────────────────────────────────
+# FAQ CRUD Helpers
+# ────────────────────────────────────────────────
+
+def get_all_faqs():
+    """Return all FAQs (active + inactive)"""
+    db = get_db_connection()
+    if not db:
+        return []
+    try:
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT id, question, answer, category, status, created_at, updated_at
+            FROM faqs
+            ORDER BY question ASC
+        """)
+        return cursor.fetchall()
+    except Exception as e:
+        app_logger.error(f"get_all_faqs error: {str(e)}")
+        return []
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+
+
+def add_faq(question, answer, category=None):
+    """Create new FAQ"""
+    db = get_db_connection()
+    if not db:
+        return False, "Database connection failed"
+    try:
+        cursor = db.cursor()
+        cursor.execute("""
+            INSERT INTO faqs (question, answer, category)
+            VALUES (%s, %s, %s)
+        """, (question.strip(), answer.strip(), category.strip() if category else None))
+        db.commit()
+        return True, "FAQ added successfully"
+    except Exception as e:
+        app_logger.error(f"add_faq error: {str(e)}")
+        return False, f"Error: {str(e)}"
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+
+
+def update_faq(faq_id, question=None, answer=None, category=None, status=None):
+    """Update existing FAQ (only provided fields)"""
+    db = get_db_connection()
+    if not db:
+        return False, "Database connection failed"
+
+    updates = []
+    params = []
+
+    if question is not None:
+        updates.append("question = %s")
+        params.append(question.strip())
+    if answer is not None:
+        updates.append("answer = %s")
+        params.append(answer.strip())
+    if category is not None:
+        updates.append("category = %s")
+        params.append(category.strip() if category else None)
+    if status in ('active', 'inactive'):
+        updates.append("status = %s")
+        params.append(status)
+
+    if not updates:
+        return False, "No fields to update"
+
+    params.append(faq_id)
+
+    try:
+        cursor = db.cursor()
+        cursor.execute(f"""
+            UPDATE faqs
+            SET {', '.join(updates)}
+            WHERE id = %s
+        """, params)
+        db.commit()
+        return cursor.rowcount > 0, "FAQ updated" if cursor.rowcount > 0 else "No changes made"
+    except Exception as e:
+        app_logger.error(f"update_faq error: {str(e)}")
+        return False, f"Error: {str(e)}"
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+
+
+def toggle_faq_status(faq_id):
+    """Switch between active ↔ inactive"""
+    db = get_db_connection()
+    if not db:
+        return False, "Database connection failed"
+    try:
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("SELECT status FROM faqs WHERE id = %s", (faq_id,))
+        row = cursor.fetchone()
+        if not row:
+            return False, "FAQ not found"
+
+        new_status = 'inactive' if row['status'] == 'active' else 'active'
+
+        cursor.execute("UPDATE faqs SET status = %s WHERE id = %s", (new_status, faq_id))
+        db.commit()
+        return True, f"Status changed to {new_status}"
+    except Exception as e:
+        app_logger.error(f"toggle_faq_status error: {str(e)}")
+        return False, f"Error: {str(e)}"
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+
+
+def delete_faq(faq_id):
+    """Delete FAQ by ID"""
+    db = get_db_connection()
+    if not db:
+        return False, "Database connection failed"
+    try:
+        cursor = db.cursor()
+        cursor.execute("DELETE FROM faqs WHERE id = %s", (faq_id,))
+        db.commit()
+        return cursor.rowcount > 0, "FAQ deleted" if cursor.rowcount > 0 else "FAQ not found"
+    except Exception as e:
+        app_logger.error(f"delete_faq error: {str(e)}")
+        return False, f"Error: {str(e)}"
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
 
 # ────────────────────────────────────────────────
 # PDF processing – IMPROVED with description in metadata
@@ -835,6 +968,71 @@ def admin_db():
         "db-admin-tool",                  # ← use the new filename
         mimetype="text/html",             # ← force browser to treat it as HTML
         conditional=True                  # ← optional: better caching
+    )
+
+@app.route("/admin/manage-faq", methods=["GET", "POST"])
+@admin_required
+def manage_faq():
+    message = None
+    message_type = "info"  # success / danger
+
+    if request.method == "POST":
+        action = request.form.get("action")
+
+        if action == "add":
+            q = request.form.get("question", "").strip()
+            a = request.form.get("answer", "").strip()
+            cat = request.form.get("category", "").strip() or None
+
+            if not q or not a:
+                message = "Question and Answer are required"
+                message_type = "danger"
+            else:
+                success, msg = add_faq(q, a, cat)
+                message = msg
+                message_type = "success" if success else "danger"
+
+        elif action == "edit":
+            faq_id = request.form.get("faq_id")
+            if faq_id and faq_id.isdigit():
+                q = request.form.get("question")
+                a = request.form.get("answer")
+                cat = request.form.get("category", "").strip() or None
+                status = request.form.get("status")
+                success, msg = update_faq(int(faq_id), q, a, cat, status)
+                message = msg
+                message_type = "success" if success else "danger"
+            else:
+                message = "Invalid FAQ ID"
+                message_type = "danger"
+
+        elif action == "toggle":
+            faq_id = request.form.get("faq_id")
+            if faq_id and faq_id.isdigit():
+                success, msg = toggle_faq_status(int(faq_id))
+                message = msg
+                message_type = "success" if success else "danger"
+            else:
+                message = "Invalid FAQ ID"
+                message_type = "danger"
+
+        elif action == "delete":
+            faq_id = request.form.get("faq_id")
+            if faq_id and faq_id.isdigit():
+                success, msg = delete_faq(int(faq_id))
+                message = msg
+                message_type = "success" if success else "danger"
+            else:
+                message = "Invalid FAQ ID"
+                message_type = "danger"
+
+    faqs = get_all_faqs()
+
+    return render_template(
+        "admin_manage_faq.html",
+        faqs=faqs,
+        message=message,
+        message_type=message_type
     )
 
 # ────────────────────────────────────────────────
