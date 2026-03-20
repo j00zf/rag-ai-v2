@@ -8,11 +8,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5n/N0ZDvEg=" crossorigin=""/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
 
   <style>
     :root {
@@ -152,6 +149,11 @@
     .pagination-active {
       @apply bg-[var(--accent)] text-white border-[var(--accent)] hover:bg-[var(--accent-h)];
     }
+#map {
+  width: 100%;
+  height: 100%;
+  min-height: 480px;
+}
 
     #mapContainer {
       height: 100%;
@@ -587,6 +589,49 @@ const resizeObserver = new ResizeObserver(() => {
   if (map) map.invalidateSize();
 });
 resizeObserver.observe(document.getElementById('mapContainer'));
+</script>
+<script>
+const mapData = JSON.parse(document.getElementById('mapData')?.textContent || '[]');
+
+if (!mapData.length) {
+  document.getElementById('map').style.display = 'none';
+  document.getElementById('mapEmpty').classList.remove('hidden');
+} else {
+
+  const map = new maplibregl.Map({
+    container: 'map',
+    style: 'https://demotiles.maplibre.org/style.json', // FREE STYLE
+    center: [0, 20],
+    zoom: 2
+  });
+
+  const bounds = new maplibregl.LngLatBounds();
+
+  mapData.forEach(item => {
+    if (item.lat && item.lng) {
+
+      const popup = new maplibregl.Popup({ offset: 25 }).setHTML(`
+        <div style="font-size:13px">
+          <strong>IP:</strong> ${item.ip}<br>
+          <strong>Location:</strong> ${item.city}, ${item.country}<br>
+          <strong>Messages:</strong> ${item.messages}<br>
+          <strong>Last Seen:</strong> ${item.last_seen}
+        </div>
+      `);
+
+      new maplibregl.Marker()
+        .setLngLat([parseFloat(item.lng), parseFloat(item.lat)])
+        .setPopup(popup)
+        .addTo(map);
+
+      bounds.extend([parseFloat(item.lng), parseFloat(item.lat)]);
+    }
+  });
+
+  if (!bounds.isEmpty()) {
+    map.fitBounds(bounds, { padding: 50 });
+  }
+}
 </script>
 
 </body>
