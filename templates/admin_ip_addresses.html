@@ -547,50 +547,7 @@ if (table) {
   renderTable();
 }
 
-// Leaflet Map
-const mapData = JSON.parse(document.getElementById('mapData')?.textContent || '[]');
 
-let map;
-if (mapData.length > 0) {
-  map = L.map('map').setView([20, 0], 2);
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 18,
-  }).addTo(map);
-
-  const markers = [];
-  mapData.forEach(item => {
-    if (item.lat && item.lng) {
-      const marker = L.marker([parseFloat(item.lat), parseFloat(item.lng)]).addTo(map);
-      marker.bindPopup(`
-        <div class="text-sm">
-          <strong>IP:</strong> ${item.ip}<br>
-          <strong>Location:</strong> ${item.city}, ${item.country}<br>
-          <strong>Messages:</strong> ${item.messages}<br>
-          <strong>Last Seen:</strong> ${item.last_seen}
-        </div>
-      `);
-      markers.push(marker);
-    }
-  });
-
-  if (markers.length > 0) {
-    const group = L.featureGroup(markers);
-    map.fitBounds(group.getBounds(), { padding: [60, 60] });
-  }
-} else {
-  document.getElementById('map').style.display = 'none';
-  document.getElementById('mapEmpty').classList.remove('hidden');
-}
-
-// Resize map when container changes
-const resizeObserver = new ResizeObserver(() => {
-  if (map) map.invalidateSize();
-});
-resizeObserver.observe(document.getElementById('mapContainer'));
-</script>
-<script>
 const mapData = JSON.parse(document.getElementById('mapData')?.textContent || '[]');
 
 if (!mapData.length) {
@@ -600,37 +557,45 @@ if (!mapData.length) {
 
   const map = new maplibregl.Map({
     container: 'map',
-    style: 'https://demotiles.maplibre.org/style.json', // FREE STYLE
+    style: 'https://demotiles.maplibre.org/style.json', // free open-source tiles
     center: [0, 20],
     zoom: 2
   });
 
   const bounds = new maplibregl.LngLatBounds();
 
-  mapData.forEach(item => {
-    if (item.lat && item.lng) {
+  map.on('load', () => {
+    mapData.forEach(item => {
+      if (item.lat && item.lng) {
 
-      const popup = new maplibregl.Popup({ offset: 25 }).setHTML(`
-        <div style="font-size:13px">
-          <strong>IP:</strong> ${item.ip}<br>
-          <strong>Location:</strong> ${item.city}, ${item.country}<br>
-          <strong>Messages:</strong> ${item.messages}<br>
-          <strong>Last Seen:</strong> ${item.last_seen}
-        </div>
-      `);
+        const popup = new maplibregl.Popup({ offset: 25 }).setHTML(`
+          <div style="font-size:13px">
+            <strong>IP:</strong> ${item.ip}<br>
+            <strong>Location:</strong> ${item.city}, ${item.country}<br>
+            <strong>Messages:</strong> ${item.messages}<br>
+            <strong>Last Seen:</strong> ${item.last_seen}
+          </div>
+        `);
 
-      new maplibregl.Marker()
-        .setLngLat([parseFloat(item.lng), parseFloat(item.lat)])
-        .setPopup(popup)
-        .addTo(map);
+        new maplibregl.Marker({ color: "#3b82f6" })
+          .setLngLat([parseFloat(item.lng), parseFloat(item.lat)])
+          .setPopup(popup)
+          .addTo(map);
 
-      bounds.extend([parseFloat(item.lng), parseFloat(item.lat)]);
+        bounds.extend([parseFloat(item.lng), parseFloat(item.lat)]);
+      }
+    });
+
+    if (!bounds.isEmpty()) {
+      map.fitBounds(bounds, { padding: 60 });
     }
   });
 
-  if (!bounds.isEmpty()) {
-    map.fitBounds(bounds, { padding: 50 });
-  }
+  // FIX: resize issue (very important for dashboards)
+  const resizeObserver = new ResizeObserver(() => {
+    map.resize();
+  });
+  resizeObserver.observe(document.getElementById('mapContainer'));
 }
 </script>
 
