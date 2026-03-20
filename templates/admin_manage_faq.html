@@ -1,103 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage FAQs - Admin</title>
 
-<div class="container-fluid">
-  <h2 class="mb-4">Manage FAQs</h2>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  {% if message %}
-  <div class="alert alert-{{ message_type }} alert-dismissible fade show" role="alert">
-    {{ message }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-  </div>
-  {% endif %}
+  <style>
+    :root {
+      --bg:        #fdfdf9;
+      --surface:   #ffffff;
+      --border:    #e2e8f0;
+      --text-base: #1e293b;
+      --text-mute: #64748b;
+      --text-light:#94a3b8;
+      --accent:    #64748b;
+      --accent-h:  #475569;
+      --hover:     #f1f5f9;
+      --active-bg: #e2e8f0;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.04);
+      --radius:    0.75rem;
+    }
 
-  <!-- Add new FAQ -->
-  <div class="card mb-4">
-    <div class="card-header bg-primary text-white">
-      <h5 class="mb-0">Add New FAQ</h5>
+    body {
+      background: var(--bg);
+      color: var(--text-base);
+      font-feature-settings: "cv03", "cv04", "ss01";
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      margin: 0;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.22s ease, transform 0.22s ease;
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+
+    .sidebar {
+      background: #fafcff;
+      border-right: 1px solid var(--border);
+      box-shadow: 1px 0 0 0 rgba(226,232,240,0.8);
+    }
+
+    .sidebar-link {
+      border-radius: 0.625rem;
+      color: var(--text-mute);
+      transition: all 0.18s ease;
+      font-size: 0.94rem;
+    }
+
+    .sidebar-link:hover {
+      background: var(--hover);
+      color: var(--text-base);
+    }
+
+    .sidebar-active {
+      background: var(--active-bg) !important;
+      color: var(--text-base) !important;
+      font-weight: 600;
+      border-left: 3.5px solid var(--accent);
+    }
+
+    .sidebar-active i {
+      color: var(--accent-h) !important;
+    }
+
+    header {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    table th {
+      background: #f8fafc;
+      color: var(--text-mute);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.6875rem;
+      letter-spacing: 0.04em;
+      padding: 0.875rem 1.25rem;
+      text-align: left;
+    }
+
+    table td {
+      color: #334155;
+      padding: 0.875rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    table tr:hover {
+      background: #f8fafc;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.625rem 1.25rem;
+      font-weight: 500;
+      border-radius: 0.5rem;
+      transition: all 0.18s ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+      transform: translateY(-1px);
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+      font-size: 0.9rem;
+      padding: 0.4rem 0.9rem;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .btn-warning {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .btn-warning:hover {
+      background: #d97706;
+    }
+
+    .message {
+      padding: 1rem;
+      border-radius: var(--radius);
+      margin-bottom: 1.5rem;
+      font-weight: 500;
+    }
+
+    .message-success {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+
+    .message-error {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      padding: 0.35em 0.65em;
+      font-weight: 500;
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased">
+
+<div class="flex min-h-screen">
+
+  <!-- Sidebar -->
+  <aside class="w-64 sidebar flex flex-col sticky top-0 h-screen z-20">
+    <div class="p-5 text-xl font-semibold flex items-center gap-3 border-b border-[var(--border)] bg-white/70 backdrop-blur-sm">
+      <i data-lucide="layout-dashboard" class="w-6 h-6 text-[var(--accent)]"></i>
+      Admin
     </div>
-    <div class="card-body">
-      <form method="post">
-        <input type="hidden" name="action" value="add">
-        <div class="mb-3">
-          <label for="question" class="form-label">Question <span class="text-danger">*</span></label>
-          <input type="text" class="form-control" id="question" name="question" required>
-        </div>
-        <div class="mb-3">
-          <label for="answer" class="form-label">Answer <span class="text-danger">*</span></label>
-          <textarea class="form-control" id="answer" name="answer" rows="4" required></textarea>
-        </div>
-        <div class="mb-3">
-          <label for="category" class="form-label">Category (optional)</label>
-          <input type="text" class="form-control" id="category" name="category" placeholder="e.g. Admissions, Fees, Hostel">
-        </div>
-        <button type="submit" class="btn btn-success">Add FAQ</button>
-      </form>
-    </div>
-  </div>
 
-  <!-- FAQ List -->
-  <div class="card">
-    <div class="card-header bg-info text-white">
-      <h5 class="mb-0">All FAQs ({{ faqs|length }})</h5>
+    <nav class="flex-1 p-4 space-y-1.5 text-sm">
+      <a href="/admin/dashboard" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="home" class="w-5 h-5"></i> Dashboard
+      </a>
+      <a href="/admin/knowledge-base" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="database" class="w-5 h-5"></i> Knowledge Base
+      </a>
+      <a href="/admin/manage-faq" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition sidebar-active">
+        <i data-lucide="help-circle" class="w-5 h-5"></i> Manage FAQs
+      </a>
+      <a href="/admin/ip-addresses" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="globe" class="w-5 h-5"></i> IP Addresses
+      </a>
+      <a href="/admin/manage-admins" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="users" class="w-5 h-5"></i> Manage Admins
+      </a>
+      <div class="my-4 h-px bg-[var(--border)]"></div>
+      <a href="/" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="book-open-check" class="w-5 h-5"></i> Test App
+      </a>
+      <a href="/admin/all-user-messages" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="messages-square" class="w-5 h-5"></i> All Messages
+      </a>
+      <a href="/admin/view-errors" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="alert-triangle" class="w-5 h-5"></i> Errors
+      </a>
+      <a href="/admin/server-status" class="sidebar-link flex items-center gap-3 px-4 py-[11px] transition">
+        <i data-lucide="server" class="w-5 h-5"></i> Server Status
+      </a>
+    </nav>
+
+    <div class="p-4 border-t border-[var(--border)] bg-white/70 backdrop-blur-sm">
+      <a href="/admin/logout"
+         class="flex items-center justify-center gap-2.5 w-full bg-gray-50 hover:bg-gray-100 text-red-700 font-medium py-2.5 rounded-lg transition-colors">
+        <i data-lucide="log-out" class="w-4.5 h-4.5"></i>
+        Logout
+      </a>
     </div>
-    <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table table-hover table-bordered mb-0">
-          <thead class="table-light">
-            <tr>
-              <th>#</th>
-              <th>Question</th>
-              <th>Answer</th>
-              <th>Category</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% if faqs %}
-              {% for faq in faqs %}
+  </aside>
+
+  <!-- Main Content -->
+  <div class="flex-1 flex flex-col">
+
+    <header class="bg-white border-b border-[var(--border)] px-6 py-4 sticky top-0 z-10 backdrop-blur-sm">
+      <h1 class="text-xl font-semibold flex items-center gap-3 text-gray-800">
+        <i data-lucide="help-circle" class="w-6 h-6 text-[var(--accent)]"></i>
+        Manage FAQs
+      </h1>
+    </header>
+
+    <main class="p-6 flex-1 w-full">
+
+      {% if error %}
+      <div class="message message-error mb-4">{{ error }}</div>
+      {% endif %}
+
+      {% if success %}
+      <div class="message message-success mb-4">{{ success }}</div>
+      {% endif %}
+
+      <!-- Top Bar -->
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-lg font-semibold">All FAQs ({{ faqs|length }})</h2>
+
+        <button onclick="openAddModal()"
+                class="btn btn-primary flex items-center gap-2">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          Add New FAQ
+        </button>
+      </div>
+
+      <!-- FAQ List -->
+      <div class="card overflow-hidden">
+        <div class="px-6 py-4 border-b border-[var(--border)]">
+          <h3 class="text-xl font-semibold">FAQs</h3>
+        </div>
+
+        {% if faqs %}
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead>
               <tr>
+                <th>#</th>
+                <th>Question</th>
+                <th>Answer</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th style="text-align:center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for faq in faqs %}
+              <tr class="hover:bg-gray-50/70 transition-colors">
                 <td>{{ loop.index }}</td>
-                <td>{{ faq.question }}</td>
+                <td class="font-medium">{{ faq.question }}</td>
                 <td>{{ faq.answer | truncate(120) }}</td>
-                <td>{{ faq.category or '-' }}</td>
                 <td>
-                  <span class="badge bg-{{ 'success' if faq.status == 'active' else 'secondary' }}">
+                  {% if faq.category %}
+                    {{ faq.category }}
+                  {% else %}
+                    <span class="text-[var(--text-mute)] italic">-</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="badge {{ 'bg-green-100 text-green-800' if faq.status == 'active' else 'bg-gray-100 text-gray-700' }}">
                     {{ faq.status | capitalize }}
                   </span>
                 </td>
-                <td>
+                <td style="text-align:center; white-space:nowrap;">
+                  <!-- Edit -->
+                  <button type="button" class="btn btn-primary text-sm px-3 py-1 me-2"
+                          onclick="openEditModal('{{ faq.id }}', '{{ faq.question | e }}', '{{ faq.answer | e }}', '{{ faq.category | e if faq.category else '' }}')">
+                    Edit
+                  </button>
+
                   <!-- Toggle -->
-                  <form method="post" class="d-inline">
+                  <form action="/admin/manage-faq" method="POST" class="inline-block">
                     <input type="hidden" name="action" value="toggle">
                     <input type="hidden" name="faq_id" value="{{ faq.id }}">
-                    <button type="submit" class="btn btn-sm btn-warning" title="Toggle status">
+                    <button type="submit" class="btn {{ 'btn-warning' if faq.status == 'active' else 'btn-success' }} text-sm px-3 py-1">
                       {{ 'Deactivate' if faq.status == 'active' else 'Activate' }}
                     </button>
                   </form>
 
                   <!-- Delete -->
-                  <form method="post" class="d-inline ms-1">
-                    <input type="hidden" name="action" value="delete">
-                    <input type="hidden" name="faq_id" value="{{ faq.id }}">
-                    <button type="submit" class="btn btn-sm btn-danger" 
-                            onclick="return confirm('Really delete this FAQ?');"
-                            title="Delete FAQ">
-                      Delete
-                    </button>
-                  </form>
+<form action="/admin/manage-faq" method="POST" class="inline-block ms-2"
+      onsubmit="handleDelete(event, this)">
+
+  <input type="hidden" name="action" value="delete">
+  <input type="hidden" name="faq_id" value="{{ faq.id }}">
+  <input type="hidden" name="question" value="{{ faq.question | e }}">
+
+  <button type="submit" class="btn btn-danger text-sm px-3 py-1">
+    Delete
+  </button>
+</form>
                 </td>
               </tr>
               {% endfor %}
-            {% else %}
-              <tr>
-                <td colspan="6" class="text-center text-muted py-4">
-                  No FAQs yet. Add one above.
-                </td>
-              </tr>
-            {% endif %}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="p-10 text-center text-[var(--text-mute)]">
+          <p class="text-lg">No FAQs added yet.</p>
+        </div>
+        {% endif %}
       </div>
-    </div>
+
+    </main>
   </div>
 </div>
+
+<!-- Add FAQ Modal -->
+<div id="addFaqModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+  <div class="bg-white w-full max-w-lg rounded-xl shadow-lg p-6 relative">
+    <button onclick="closeAddModal()" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700">✕</button>
+
+    <h3 class="text-xl font-semibold mb-4">Add New FAQ</h3>
+
+    <form method="POST" action="/admin/manage-faq">
+      <input type="hidden" name="action" value="add">
+
+      <div class="mb-5">
+        <label class="block text-sm font-medium mb-2">Question <span class="text-red-500">*</span></label>
+        <input type="text" name="question" required class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:text-sm px-3 py-2" placeholder="e.g. What documents are required for admission?">
+      </div>
+
+      <div class="mb-5">
+        <label class="block text-sm font-medium mb-2">Answer <span class="text-red-500">*</span></label>
+        <textarea name="answer" rows="5" required class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:text-sm px-3 py-2" placeholder="Provide a clear and concise answer..."></textarea>
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-sm font-medium mb-2">Category (optional)</label>
+        <input type="text" name="category" class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:text-sm px-3 py-2" placeholder="e.g. Admissions, Fees, Hostel">
+      </div>
+
+      <div class="flex justify-end gap-3">
+        <button type="button" onclick="closeAddModal()" class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200">Cancel</button>
+        <button type="submit" class="btn btn-success flex items-center gap-2">
+          <i data-lucide="save" class="w-4 h-4"></i> Save FAQ
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit FAQ Modal -->
+<div id="editFaqModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+  <div class="bg-white w-full max-w-lg rounded-xl shadow-lg p-6 relative">
+    <button onclick="closeEditModal()" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700">✕</button>
+
+    <h3 class="text-xl font-semibold mb-4">Edit FAQ</h3>
+
+    <form method="POST" action="/admin/manage-faq">
+      <input type="hidden" name="action" value="edit">
+      <input type="hidden" name="faq_id" id="edit_faq_id">
+
+      <div class="mb-5">
+        <label class="block text-sm font-medium mb-2">Question <span class="text-red-500">*</span></label>
+        <input type="text" name="question" id="edit_question" required class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:text-sm px-3 py-2">
+      </div>
+
+      <div class="mb-5">
+        <label class="block text-sm font-medium mb-2">Answer <span class="text-red-500">*</span></label>
+        <textarea name="answer" id="edit_answer" rows="5" required class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:text-sm px-3 py-2"></textarea>
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-sm font-medium mb-2">Category (optional)</label>
+        <input type="text" name="category" id="edit_category" class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:text-sm px-3 py-2" placeholder="e.g. Admissions, Fees">
+      </div>
+
+      <div class="flex justify-end gap-3">
+        <button type="button" onclick="closeEditModal()" class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200">Cancel</button>
+        <button type="submit" class="btn btn-primary flex items-center gap-2">
+          <i data-lucide="save" class="w-4 h-4"></i> Update FAQ
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  lucide.createIcons();
+
+  // ── Add Modal ─────────────────────────────────────
+  function openAddModal() {
+    document.getElementById('addFaqModal').classList.remove('hidden');
+    document.getElementById('addFaqModal').classList.add('flex');
+  }
+
+  function closeAddModal() {
+    const modal = document.getElementById('addFaqModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+
+  // ── Edit Modal ────────────────────────────────────
+  function openEditModal(id, question, answer, category) {
+    document.getElementById('edit_faq_id').value   = id;
+    document.getElementById('edit_question').value = question;
+    document.getElementById('edit_answer').value   = answer;
+    document.getElementById('edit_category').value = category || '';
+
+    const modal = document.getElementById('editFaqModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function closeEditModal() {
+    const modal = document.getElementById('editFaqModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+
+  // Close modals on outside click
+  document.getElementById('addFaqModal')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeAddModal();
+  });
+
+  document.getElementById('editFaqModal')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeEditModal();
+  });
+function handleDelete(event, form) {
+  
+  console.log("DELETE CLICKED");
+  event.preventDefault();
+
+  const questionInput = form.querySelector('input[name="question"]');
+  const question = questionInput ? questionInput.value : "this FAQ";
+
+ const actionUrl = form.getAttribute("action");
+
+if (!form || !actionUrl || actionUrl.includes('[object')) {
+    Swal.fire('Error', 'Invalid form action URL', 'error');
+    return;
+  }
+
+  Swal.fire({
+    title: 'Delete FAQ?',
+    html: `Are you sure you want to delete:<br><br><strong>"${question}"</strong>?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'Yes, Delete',
+    cancelButtonText: 'Cancel'
+  }).then((result) => {
+    if (!result.isConfirmed) return;
+
+    Swal.fire({
+      title: 'Deleting...',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+
+    const formData = new FormData(form);
+
+    fetch(actionUrl, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(async (res) => {
+      const text = await res.text();
+
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        throw new Error("Server returned HTML instead of JSON");
+      }
+    })
+    .then((data) => {
+      Swal.close();
+
+      if (data.success) {
+        Swal.fire({
+          title: 'Deleted!',
+          text: data.message || 'FAQ removed successfully.',
+          icon: 'success',
+          timer: 1400,
+          showConfirmButton: false
+        }).then(() => window.location.reload());
+      } else {
+        Swal.fire('Error', data.message || 'Could not delete FAQ.', 'error');
+      }
+    })
+    .catch((err) => {
+      Swal.close();
+      console.error(err);
+      Swal.fire('Error', err.message || 'Delete failed', 'error');
+    });
+  });
+}
+</script>
+
+</body>
+</html>

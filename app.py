@@ -126,138 +126,6 @@ def get_vector_db():
     
 
 # ────────────────────────────────────────────────
-# FAQ CRUD Helpers
-# ────────────────────────────────────────────────
-
-def get_all_faqs():
-    """Return all FAQs (active + inactive)"""
-    db = get_db_connection()
-    if not db:
-        return []
-    try:
-        cursor = db.cursor(dictionary=True)
-        cursor.execute("""
-            SELECT id, question, answer, category, status, created_at, updated_at
-            FROM faqs
-            ORDER BY question ASC
-        """)
-        return cursor.fetchall()
-    except Exception as e:
-        app_logger.error(f"get_all_faqs error: {str(e)}")
-        return []
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-
-
-def add_faq(question, answer, category=None):
-    """Create new FAQ"""
-    db = get_db_connection()
-    if not db:
-        return False, "Database connection failed"
-    try:
-        cursor = db.cursor()
-        cursor.execute("""
-            INSERT INTO faqs (question, answer, category)
-            VALUES (%s, %s, %s)
-        """, (question.strip(), answer.strip(), category.strip() if category else None))
-        db.commit()
-        return True, "FAQ added successfully"
-    except Exception as e:
-        app_logger.error(f"add_faq error: {str(e)}")
-        return False, f"Error: {str(e)}"
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-
-
-def update_faq(faq_id, question=None, answer=None, category=None, status=None):
-    """Update existing FAQ (only provided fields)"""
-    db = get_db_connection()
-    if not db:
-        return False, "Database connection failed"
-
-    updates = []
-    params = []
-
-    if question is not None:
-        updates.append("question = %s")
-        params.append(question.strip())
-    if answer is not None:
-        updates.append("answer = %s")
-        params.append(answer.strip())
-    if category is not None:
-        updates.append("category = %s")
-        params.append(category.strip() if category else None)
-    if status in ('active', 'inactive'):
-        updates.append("status = %s")
-        params.append(status)
-
-    if not updates:
-        return False, "No fields to update"
-
-    params.append(faq_id)
-
-    try:
-        cursor = db.cursor()
-        cursor.execute(f"""
-            UPDATE faqs
-            SET {', '.join(updates)}
-            WHERE id = %s
-        """, params)
-        db.commit()
-        return cursor.rowcount > 0, "FAQ updated" if cursor.rowcount > 0 else "No changes made"
-    except Exception as e:
-        app_logger.error(f"update_faq error: {str(e)}")
-        return False, f"Error: {str(e)}"
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-
-
-def toggle_faq_status(faq_id):
-    """Switch between active ↔ inactive"""
-    db = get_db_connection()
-    if not db:
-        return False, "Database connection failed"
-    try:
-        cursor = db.cursor(dictionary=True)
-        cursor.execute("SELECT status FROM faqs WHERE id = %s", (faq_id,))
-        row = cursor.fetchone()
-        if not row:
-            return False, "FAQ not found"
-
-        new_status = 'inactive' if row['status'] == 'active' else 'active'
-
-        cursor.execute("UPDATE faqs SET status = %s WHERE id = %s", (new_status, faq_id))
-        db.commit()
-        return True, f"Status changed to {new_status}"
-    except Exception as e:
-        app_logger.error(f"toggle_faq_status error: {str(e)}")
-        return False, f"Error: {str(e)}"
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-
-
-def delete_faq(faq_id):
-    """Delete FAQ by ID"""
-    db = get_db_connection()
-    if not db:
-        return False, "Database connection failed"
-    try:
-        cursor = db.cursor()
-        cursor.execute("DELETE FROM faqs WHERE id = %s", (faq_id,))
-        db.commit()
-        return cursor.rowcount > 0, "FAQ deleted" if cursor.rowcount > 0 else "FAQ not found"
-    except Exception as e:
-        app_logger.error(f"delete_faq error: {str(e)}")
-        return False, f"Error: {str(e)}"
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-
-# ────────────────────────────────────────────────
 # PDF processing – IMPROVED with description in metadata
 # ────────────────────────────────────────────────
 def process_pdf(path, document_id, description=""):
@@ -970,67 +838,224 @@ def admin_db():
         conditional=True                  # ← optional: better caching
     )
 
+#────────────────────────────────────────────────
+# FAQ Management - Full CRUD + Toggle in one route
+# ────────────────────────────────────────────────
+# CRUD Helpers (already improved from previous)
+# ────────────────────────────────────────────────
+
+def get_all_faqs():
+    db = get_db_connection()
+    if not db: return []
+    try:
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT id, question, answer, category, status, created_at, updated_at
+            FROM faqs
+            ORDER BY 
+                CASE WHEN status = 'active' THEN 0 ELSE 1 END,
+                question ASC
+        """)
+        return cursor.fetchall()
+    except Exception as e:
+        app_logger.error(f"get_all_faqs error: {str(e)}")
+        return []
+    finally:
+        if 'cursor' in locals(): cursor.close()
+
+
+def add_faq(question: str, answer: str, category: str | None = None) -> tuple[bool, str]:
+    db = get_db_connection()
+    if not db: return False, "DB connection failed"
+
+    question = (question or "").strip()
+    answer   = (answer   or "").strip()
+    category = (category or "").strip() or None
+
+    if not question or not answer:
+        return False, "Question and answer required"
+
+    try:
+        cursor = db.cursor()
+        cursor.execute("""
+            INSERT INTO faqs 
+            (question, answer, category, status, created_at, updated_at)
+            VALUES (%s, %s, %s, 'active', NOW(), NOW())
+        """, (question, answer, category))
+        db.commit()
+        return True, "FAQ added"
+    except Exception as e:
+        app_logger.error(f"add_faq error: {str(e)}")
+        return False, "Error adding FAQ"
+    finally:
+        if 'cursor' in locals(): cursor.close()
+
+
+def update_faq(faq_id: int, 
+               question: str | None = None,
+               answer: str | None = None,
+               category: str | None = None,
+               status: str | None = None) -> tuple[bool, str]:
+    db = get_db_connection()
+    if not db: return False, "DB connection failed"
+
+    updates = []
+    params = []
+
+    if question is not None:
+        q = (question or "").strip()
+        if not q: return False, "Question cannot be empty"
+        updates.append("question = %s")
+        params.append(q)
+
+    if answer is not None:
+        a = (answer or "").strip()
+        if not a: return False, "Answer cannot be empty"
+        updates.append("answer = %s")
+        params.append(a)
+
+    if category is not None:
+        cat = (category or "").strip() or None
+        updates.append("category = %s")
+        params.append(cat)
+
+    if status in ('active', 'inactive'):
+        updates.append("status = %s")
+        params.append(status)
+
+    if not updates:
+        return False, "No fields to update"
+
+    params.append(faq_id)
+
+    try:
+        cursor = db.cursor()
+        cursor.execute(f"""
+            UPDATE faqs
+            SET {', '.join(updates)}, updated_at = NOW()
+            WHERE id = %s
+        """, params)
+        db.commit()
+        return cursor.rowcount > 0, "FAQ updated" if cursor.rowcount > 0 else "FAQ not found"
+    except Exception as e:
+        app_logger.error(f"update_faq error: {str(e)}")
+        return False, "Error updating FAQ"
+    finally:
+        if 'cursor' in locals(): cursor.close()
+
+
+def toggle_faq_status(faq_id: int) -> tuple[bool, str]:
+    db = get_db_connection()
+    if not db: return False, "DB connection failed"
+
+    try:
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("SELECT status FROM faqs WHERE id = %s", (faq_id,))
+        row = cursor.fetchone()
+        if not row: return False, "FAQ not found"
+
+        new_status = 'inactive' if row['status'] == 'active' else 'active'
+
+        cursor.execute("UPDATE faqs SET status = %s, updated_at = NOW() WHERE id = %s", 
+                       (new_status, faq_id))
+        db.commit()
+        return True, f"Status → {new_status}"
+    except Exception as e:
+        app_logger.error(f"toggle_faq_status error: {str(e)}")
+        return False, "Error toggling status"
+    finally:
+        if 'cursor' in locals(): cursor.close()
+
+
+def delete_faq(faq_id: int) -> tuple[bool, str]:
+    db = get_db_connection()
+    if not db: return False, "DB connection failed"
+
+    try:
+        cursor = db.cursor()
+        cursor.execute("DELETE FROM faqs WHERE id = %s", (faq_id,))
+        db.commit()
+        return cursor.rowcount > 0, "FAQ deleted" if cursor.rowcount > 0 else "FAQ not found"
+    except Exception as e:
+        app_logger.error(f"delete_faq error: {str(e)}")
+        return False, "Error deleting FAQ"
+    finally:
+        if 'cursor' in locals(): cursor.close()
+
+
+# ────────────────────────────────────────────────
+# Single Admin Route — handles ALL operations
+# ────────────────────────────────────────────────
+
 @app.route("/admin/manage-faq", methods=["GET", "POST"])
 @admin_required
 def manage_faq():
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json
     message = None
-    message_type = "info"  # success / danger
+    message_type = "info"
 
     if request.method == "POST":
         action = request.form.get("action")
+        faq_id = request.form.get("faq_id")
 
+        # ── ADD ───────────────────────────────────────
         if action == "add":
-            q = request.form.get("question", "").strip()
-            a = request.form.get("answer", "").strip()
-            cat = request.form.get("category", "").strip() or None
+            success, msg = add_faq(
+                request.form.get("question", "").strip(),
+                request.form.get("answer",   "").strip(),
+                request.form.get("category", "").strip() or None
+            )
+            if is_ajax:
+                return jsonify({"success": success, "message": msg}), 200 if success else 400
+            message = msg
+            message_type = "success" if success else "danger"
 
-            if not q or not a:
-                message = "Question and Answer are required"
-                message_type = "danger"
-            else:
-                success, msg = add_faq(q, a, cat)
-                message = msg
-                message_type = "success" if success else "danger"
-
+        # ── EDIT ──────────────────────────────────────
         elif action == "edit":
-            faq_id = request.form.get("faq_id")
-            if faq_id and faq_id.isdigit():
-                q = request.form.get("question")
-                a = request.form.get("answer")
-                cat = request.form.get("category", "").strip() or None
-                status = request.form.get("status")
-                success, msg = update_faq(int(faq_id), q, a, cat, status)
-                message = msg
-                message_type = "success" if success else "danger"
+            if not faq_id or not faq_id.isdigit():
+                msg = "Invalid FAQ ID"
             else:
-                message = "Invalid FAQ ID"
-                message_type = "danger"
+                success, msg = update_faq(
+                    int(faq_id),
+                    request.form.get("question"),
+                    request.form.get("answer"),
+                    request.form.get("category", "").strip() or None,
+                    request.form.get("status")  # optional - usually not changed via edit
+                )
+            if is_ajax:
+                return jsonify({"success": success, "message": msg}), 200 if success else 400
+            message = msg
+            message_type = "success" if success else "danger"
 
+        # ── TOGGLE ────────────────────────────────────
         elif action == "toggle":
-            faq_id = request.form.get("faq_id")
-            if faq_id and faq_id.isdigit():
+            if not faq_id or not faq_id.isdigit():
+                msg = "Invalid FAQ ID"
+            else:
                 success, msg = toggle_faq_status(int(faq_id))
-                message = msg
-                message_type = "success" if success else "danger"
-            else:
-                message = "Invalid FAQ ID"
-                message_type = "danger"
+            if is_ajax:
+                return jsonify({"success": success, "message": msg}), 200 if success else 400
+            message = msg
+            message_type = "success" if success else "danger"
 
+        # ── DELETE ────────────────────────────────────
         elif action == "delete":
-            faq_id = request.form.get("faq_id")
-            if faq_id and faq_id.isdigit():
-                success, msg = delete_faq(int(faq_id))
-                message = msg
-                message_type = "success" if success else "danger"
+            if not faq_id or not faq_id.isdigit():
+                msg = "Invalid FAQ ID"
             else:
-                message = "Invalid FAQ ID"
-                message_type = "danger"
+                success, msg = delete_faq(int(faq_id))
+            if is_ajax:
+                return jsonify({"success": success, "message": msg}), 200 if success else 400
+            message = msg
+            message_type = "success" if success else "danger"
 
     faqs = get_all_faqs()
 
     return render_template(
         "admin_manage_faq.html",
         faqs=faqs,
+        success=message if message_type == "success" else None,
+        error=message if message_type in ("danger", "error") else None,
         message=message,
         message_type=message_type
     )
