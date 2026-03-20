@@ -288,6 +288,22 @@ def get_ip_location(ip):
     return None
 
 # ────────────────────────────────────────────────
+# Security headers to allow iframe embedding 
+# (for embedding the chatbot in college portals)
+# ────────────────────────────────────────────────
+
+@app.after_request
+def allow_iframe(response):
+    response.headers["X-Frame-Options"] = "ALLOWALL"
+    response.headers["Content-Security-Policy"] = "frame-ancestors *"
+
+    # CORS (important for cross-site)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+
+    return response
+# ────────────────────────────────────────────────
 # Public routes (chat mostly unchanged)
 # ────────────────────────────────────────────────
 @app.route("/")
