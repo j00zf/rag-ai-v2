@@ -670,15 +670,37 @@ def delete_document(doc_id):
 def admin_ip_addresses():
     db = get_db_connection()
     cursor = db.cursor(dictionary=True)
+
     cursor.execute("""
         SELECT ip_address, country, region, city, latitude, longitude,
                COUNT(chat_logs.id) as message_count,
                MAX(chat_logs.created_at) as last_seen
-        FROM ip_addresses LEFT JOIN chat_logs ON ip_addresses.id = chat_logs.ip_id
-        GROUP BY ip_addresses.id ORDER BY last_seen DESC
+        FROM ip_addresses 
+        LEFT JOIN chat_logs ON ip_addresses.id = chat_logs.ip_id
+        GROUP BY ip_addresses.id 
+        ORDER BY last_seen DESC
     """)
     ips = cursor.fetchall()
-    return render_template("admin_ip_addresses.html", ips=ips)
+    map_data = []
+    for ip in ips:
+        if ip["latitude"] and ip["longitude"]:
+            map_data.append({
+                "ip": ip["ip_address"],
+                "city": ip["city"] or "Unknown",
+                "country": ip["country"] or "",
+                "lat": float(ip["latitude"]),
+                "lng": float(ip["longitude"]),
+                "messages": ip["message_count"],
+                "last_seen": str(ip["last_seen"]) if ip["last_seen"] else "Never"
+            })
+
+    import json
+
+    return render_template(
+        "admin_ip_addresses.html",
+        ips=ips,
+        map_data_json=json.dumps(map_data)  
+    )
 
 @app.route("/admin/manage-admins")
 @admin_required
