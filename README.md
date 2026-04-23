@@ -34,6 +34,7 @@ Author: Joseph Sebastian
 ---
 
 ## 📂 Project Structure
+```
 project/
 │
 ├── pdfs/ # Uploaded documents
@@ -46,7 +47,7 @@ project/
 ├── app.py # Main Flask app
 ├── .env # Environment variables
 └── README.md
-
+```
 ---
 ## How to  Run
 
